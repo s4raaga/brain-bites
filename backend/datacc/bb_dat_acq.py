@@ -30,26 +30,9 @@ def ensure_dir(path: str | os.PathLike) -> str:
 def normspace(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
-def is_download_like(href: str) -> bool:
-    """
-    Heuristics to decide if an <a href> points to downloadable content.
-    Works with classic Blackboard endpoints such as:
-      • /bbcswebdav/... (common for file attachments)
-      • .../xid-... (Ultra file backing store)
-      • .../download?attachment_id=...
-    • .../edit/document (Ultra item edit/document pages that often encapsulate a file)
-    """
+def is_content_like(href: str) -> bool:
     href_l = href.lower()
-    return any(
-        token in href_l
-        for token in [
-            "/bbcswebdav/",
-            "xid-",
-            "download?attachment_id=",
-        "download?",
-        "/edit/document"
-        ]
-    )
+    return "/edit/document" in href_l
 
 def hostname(url: str) -> str:
     return urlparse(url).hostname or ""
@@ -221,17 +204,14 @@ def wait_until_logged_in(page: Page, base_url: str, max_wait_s: int = 180, requi
     base_host = hostname(base_url)
     while time.time() - start < max_wait_s:
         attempt += 1
-        print(f"[debug] Attempt {attempt}: Current URL: {page.url}")
         page.wait_for_load_state("networkidle", timeout=DEFAULT_TIMEOUT)
         try:
             html = page.content()
         except Exception:
-            print("[debug] Page still navigating, retrying...")
             time.sleep(1)
             continue
         # Common shells / markers:
         def success(reason: str):
-            print(f"[debug] Login heuristic satisfied: {reason}")
             return True
 
         cur_host = hostname(page.url)
@@ -240,9 +220,9 @@ def wait_until_logged_in(page: Page, base_url: str, max_wait_s: int = 180, requi
             low = html.lower()
             # Duo / MFA specific hint
             if 'duo' in cur_host or 'duosecurity' in cur_host:
-                print(f"[debug] On Duo/MFA host '{cur_host}', complete MFA in the browser...")
+                pass
             elif 'password' in low or 'login' in low:
-                print(f"[debug] On identity provider host '{cur_host}', waiting for user authentication...")
+                pass
             time.sleep(1)
             continue  # do NOT evaluate success heuristics yet
 
@@ -262,14 +242,12 @@ def wait_until_logged_in(page: Page, base_url: str, max_wait_s: int = 180, requi
         if cur_host == base_host and "/ultra/course" in page.url and len(html) > 20_000 and success("ultra/course + large DOM"):
             return
         if cur_host == base_host and ("ultra" in page.url or ('.' in base_host and base_host.split('.')[-2] in page.url)):
-            print("[debug] URL contains 'ultra' or institution key. Checking for course anchors...")
             with contextlib.suppress(Exception):
                 anchors = page.locator("a").all()
                 for a in anchors:
                     try:
                         href = a.get_attribute("href") or ""
                         if "course_id=" in href or "/ultra/course/" in href:
-                            print(f"[debug] Found direct course anchor: {href}")
                             return
                     except Exception:
                         pass
@@ -277,19 +255,17 @@ def wait_until_logged_in(page: Page, base_url: str, max_wait_s: int = 180, requi
             if cur_host == base_host:
                 auth_ping = page.evaluate("() => !!document.cookie && document.cookie.length > 20")
                 if auth_ping and len(html) > 18_000:
-                    print("[debug] Cookie + substantial DOM => treating as logged in.")
                     return
         except Exception:
             pass
 
         # Fallback navigation if we still haven't matched anything.
         if cur_host != base_host and attempt >= 5 and not headless:
-            print("[debug] Still on IdP/MFA. Complete authentication in the browser window (we'll keep waiting)...")
+            pass
         if attempt >= fallback_navigate_after and not fallback_done and cur_host == base_host:
             fallback_done = True
             target = urljoin(base_url, "ultra/course")
             if not page.url.rstrip('/').endswith('/ultra/course'):
-                print(f"[debug] Navigating proactively to courses hub: {target}")
                 with contextlib.suppress(Exception):
                     page.goto(target, wait_until="domcontentloaded")
                     time.sleep(2)
@@ -448,83 +424,6 @@ def _extract_courses_from_dom(html: str, base_url: str) -> List[Tuple[str, str]]
             seen.add(url)
     return uniq
 
-def _fallback_discover_courses_via_api(page: Page, base_url: str) -> List[Tuple[str, str]]:
-    """Attempt to use Blackboard public REST endpoints from within the authenticated
-    browser context. This handles Ultra pages that lazy-render cards with no <a href> yet.
-
-    Returns list of (name, full_url).
-    """
-    # We run JS in page context so cookies / auth headers are automatically applied.
-    js = r"""
-    () => new Promise(async resolve => {
-        const tried = [];
-        const endpoints = [
-            '/learn/api/public/v1/courses?limit=200&offset=0&availability.available=Yes',
-            '/learn/api/public/v3/courses?limit=200&offset=0&availability.available=Yes',
-            '/learn/api/v1/courses?limit=200&offset=0'
-        ];
-        for (const ep of endpoints) {
-            try {
-                const r = await fetch(ep, { credentials: 'include' });
-                tried.push({ep, status: r.status});
-                if (!r.ok) continue;
-                const j = await r.json();
-                const arr = j.results || j.data || j.courses || [];
-                if (Array.isArray(arr) && arr.length) {
-                    const mapped = arr.map(c => ({
-                        name: c.name || c.courseName || c.displayName || c.id || c.courseId,
-                        id: c.id || c.courseId || c.uuid || c.pk1 || null
-                    })).filter(o => o.id);
-                    if (mapped.length) {
-                        return resolve({ok:true, courses:mapped, tried});
-                    }
-                }
-            } catch (e) { /* ignore */ }
-        }
-        // As a *last* resort scan inline scripts for course_id patterns
-        const ids = new Set();
-        const nameMap = new Map();
-        for (const script of document.querySelectorAll('script')) {
-            const txt = script.textContent || '';
-            const re = /(course_id|COURSE_ID)["'=:\s]+([a-z0-9_:-]+)/ig;
-            let m;
-            while ((m = re.exec(txt))) {
-                const cid = m[2];
-                if (cid && cid.length < 120) ids.add(cid);
-            }
-            // Try simple JSON objects with name
-            const nameRe = /"name"\s*:\s*"([^"]{3,120})"/g;
-            while ((m = nameRe.exec(txt))) {
-                const n = m[1];
-                if (!nameMap.has(n)) nameMap.set(n,n);
-            }
-        }
-        const list = Array.from(ids).map((id,i) => ({id, name: Array.from(nameMap.keys())[i] || id}));
-        resolve({ok:false, courses:list, tried});
-    })
-    """
-    try:
-        result = page.evaluate(js)
-    except Exception as e:  # noqa: BLE001
-        eprint(f"[courses:fallback] JS evaluation failed: {e}")
-        return []
-    if not isinstance(result, dict):
-        return []
-    out: List[Tuple[str, str]] = []
-    for c in result.get("courses", []):
-        cid = c.get("id")
-        name = normspace(c.get("name") or cid or "(unnamed course)")
-        if not cid:
-            continue
-        # Construct typical Ultra outline URL
-        url = urljoin(base_url, f"ultra/course/{cid}/outline")
-        out.append((name, url))
-    if out:
-        eprint(f"[courses:fallback] collected {len(out)} course(s) via API/heuristics")
-    else:
-        eprint("[courses:fallback] no courses discovered via API endpoints")
-    return out
-
 def cmd_list_courses(base_url: str, profile_dir: str, headless: bool) -> None:
     with launch_context(headless=headless, profile_dir=profile_dir) as ctx:
         try:
@@ -559,14 +458,6 @@ def cmd_list_courses(base_url: str, profile_dir: str, headless: bool) -> None:
         html = page.content()
         courses = _extract_courses_from_dom(html, base_url)
         if not courses:
-            eprint("[list-courses] No static anchors found; trying dynamic API discovery...")
-            # Navigate explicitly to the Ultra courses hub if user gave a root portal URL
-            if not page.url.rstrip('/').endswith('/ultra/course'):
-                with contextlib.suppress(Exception):
-                    page.goto(urljoin(base_url, 'ultra/course'), wait_until="domcontentloaded")
-                    time.sleep(2)
-            courses = _fallback_discover_courses_via_api(page, base_url)
-        if not courses:
             print("No courses detected on the landing page. Navigate into 'Courses' then re-run list-courses.", file=sys.stderr)
         for name, url in courses:
             print(f"{name}\n  {url}\n")
@@ -582,7 +473,7 @@ def _collect_downloadables_from_course(page: Page, base_url: str) -> List[Tuple[
     # General approach: gather all anchors that *look* like file endpoints
     for a in soup.find_all("a", href=True):
         href = a["href"]
-        if is_download_like(href):
+        if is_content_like(href):
             title = normspace(a.get_text(" ")) or pathlib.Path(urlparse(href).path).name
             items.append((title, urljoin(base_url, href)))
 
@@ -605,35 +496,37 @@ def _collect_downloadables_from_course(page: Page, base_url: str) -> List[Tuple[
     return uniq
 
 def _expand_course_sections(page: Page, rounds: int = 12) -> None:
-    """Expand ALL expandable elements we can find in one straightforward sweep.
+    """Best-effort shallow expansion of obvious collapsed content containers.
 
-    Simplified behavior (per user request):
-    - Click every element with aria-expanded="false".
-    - Open all <details> that are not yet open.
-    - Click any button/anchor/summary whose label/text suggests it expands content
-      (expand/show/more/folder/module/section).
-    - Repeat until a pass produces 0 new clicks or we hit a safety cap.
-    - Also apply the same inside any same‑origin iframes.
+    Current implementation (intentionally minimal):
+    - Repeatedly clicks elements with aria-expanded="false" whose aria-controls
+      attribute contains folder-contents or learning-module-contents (Blackboard Ultra patterns).
+    - Performs the same pass inside same‑origin iframes.
+    - Stops when a pass results in 0 additional clicks or when a safety cap is reached.
+    The original broader heuristics (details/summary/buttons by text) were removed for
+    simplicity and stability; update this docstring if that logic is reintroduced.
     """
     js_snippet = r"""
         () => {
             let clicked = 0;
-            // 1. aria-expanded="false"
-            document.querySelectorAll('[aria-expanded="false"][aria-controls*="folder-contents"]').forEach(el => {
-                try { el.click(); clicked++; } catch(e){}
+            // 1. aria-expanded="false" and aria-controls contains folder-contents or learning-module-contents
+            document.querySelectorAll('[aria-expanded="false"][aria-controls]').forEach(el => {
+                const controls = el.getAttribute('aria-controls') || '';
+                if (controls.includes('folder-contents') || controls.includes('learning-module-contents')) {
+                    try { el.click(); clicked++; } catch(e){}
+                }
             });
             return clicked;
         }
     """
     # Main page loop
-    for _ in range(50):  # safety cap
+    for _ in range(500):  # safety cap
         try:
             c = page.evaluate(js_snippet)
             if not isinstance(c, int) or c == 0:
-                pass
-            time.sleep(0.2)
+                break
         except Exception:
-            pass
+            break
     # Same-origin iframes
     with contextlib.suppress(Exception):
         for frame in page.frames:
@@ -646,8 +539,8 @@ def _expand_course_sections(page: Page, rounds: int = 12) -> None:
                 for _ in range(50):
                     c = frame.evaluate(js_snippet)
                     if not isinstance(c, int) or c == 0:
-                        pass
-                    time.sleep(0.05)
+                        break
+                    #time.sleep(0.1)
 
 def cmd_list_content(base_url: str, profile_dir: str, course_url: str, headless: bool) -> None:
     with launch_context(headless=headless, profile_dir=profile_dir) as ctx:
@@ -666,15 +559,6 @@ def cmd_list_content(base_url: str, profile_dir: str, course_url: str, headless:
             print(f"{title}\n  {href}\n")
         if not items:
             print("No obvious downloadable items found. Try expanding content sections or switching to 'Original View' content areas and re-run.", file=sys.stderr)
-
-def _matches(name: str, pattern: Optional[str], regex: Optional[str]) -> bool:
-    if pattern:
-        # Simple glob-like match: convert * -> .* and ? -> .
-        pat = "^" + re.escape(pattern).replace("\*", ".*").replace("\?", ".") + "$"
-        return re.search(pat, name, flags=re.IGNORECASE) is not None
-    if regex:
-        return re.search(regex, name, flags=re.IGNORECASE) is not None
-    return True
 
 def _sanitize_filename(name: str) -> str:
     name = name.strip().replace("\0", "")[:180]
@@ -697,14 +581,14 @@ def _guess_filename_from_url(url: str) -> str:
         fname += '.pdf'
     return _sanitize_filename(fname)
 
-def cmd_download(base_url: str, profile_dir: str, course_url: str, out_dir: str, headless: bool, pattern: Optional[str], regex: Optional[str]) -> None:
+def cmd_download(base_url: str, profile_dir: str, course_url: str, out_dir: str, headless: bool) -> None:
     """Download (currently PDF-focused) resources from a course page.
 
     Behavior:
     - Navigates to course_url using stored session (cookies + web storage rehydrated).
     - DOES NOT expand sections (per user request).
     - Collects only elements bearing the attribute data-ally-file-preview-url and treats the value as the PDF URL.
-    - Filters by --pattern or --regex if supplied.
+    - Downloads all discovered PDFs (no name filtering; simplified per user request).
     - Streams each PDF via Playwright's authenticated request context → writes to out_dir.
     """
     ensure_dir(out_dir)
@@ -731,15 +615,7 @@ def cmd_download(base_url: str, profile_dir: str, course_url: str, out_dir: str,
             eprint("[download] No data-ally-file-preview-url PDF URLs discovered.")
             return
 
-        # Apply filters & dedupe
-        selected: List[str] = []
-        for u in sorted(pdf_urls):
-            fname = _guess_filename_from_url(u)
-            if _matches(fname, pattern, regex):
-                selected.append(u)
-        if not selected:
-            eprint("[download] No PDFs matched the provided pattern/regex.")
-            return
+        selected: List[str] = sorted(pdf_urls)
 
         existing_names: set[str] = set()
         success = 0
@@ -793,12 +669,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     sp_list = sub.add_parser("list-content", help="List downloadable items within a given course.")
     sp_list.add_argument("--course-url", required=True, help="Open a specific course URL (from list-courses output).")
 
-    sp_dl = sub.add_parser("download", help="Download items from a course with optional filters.")
+    sp_dl = sub.add_parser("download", help="Download items from a course (all discovered PDFs).")
     sp_dl.add_argument("--course-url", required=True, help="Course URL to open (from list-courses output).")
     sp_dl.add_argument("--out", default='downloads', required=False, help="Folder to save downloads.")
-    g = sp_dl.add_mutually_exclusive_group()
-    g.add_argument("--pattern", help="Filename glob-like pattern (e.g., *.pdf).")
-    g.add_argument("--regex", help="Python regex to match filenames.")
+    # Filtering options removed per user request.
 
     args = p.parse_args(argv)
 
@@ -818,8 +692,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             args.course_url,
             args.out,
             args.headless,
-            getattr(args, 'pattern', None),
-            getattr(args, 'regex', None),
         )
     else:
         p.print_help()
