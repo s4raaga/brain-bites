@@ -1,0 +1,12 @@
+{
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "voice_stability": 0.5,
+  "voice_similarity_boost": 0.75,
+  "caption_font": "Impact",
+  "caption_fontsize": 70,
+  "caption_color": "white",
+  "caption_stroke_color": "black",
+  "caption_stroke_width": 3,
+  "video_width": 1080,
+  "video_height": 1920
+}
