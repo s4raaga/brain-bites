@@ -1,0 +1,28 @@
+{
+  "dialogue": [
+    {
+      "character": "character1",
+      "text": "Did you know that the human brain processes visual information sixty thousand times faster than text?"
+    },
+    {
+      "character": "character2", 
+      "text": "No way! That's incredible! So that's why videos are so much more engaging than reading?"
+    },
+    {
+      "character": "character1",
+      "text": "Exactly! That's why short-form videos are so addictive. Your brain gets instant dopamine hits."
+    },
+    {
+      "character": "character2",
+      "text": "Wow, so it's basically exploiting how our brains work naturally. That's kind of scary but fascinating!"
+    },
+    {
+      "character": "character1", 
+      "text": "Right! The rapid visual changes make it nearly impossible to scroll away. It's the science behind brainrot content."
+    },
+    {
+      "character": "character2",
+      "text": "Mind blown! I'll never look at TikTok the same way again."
+    }
+  ]
+}
