@@ -1,0 +1,54 @@
+# Environment files - protect API keys
+.env
+.env.*
+
+# Output files - large video files
+outputs/
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Temp files - generated audio and temporary files
+temp/
+*.mp3
+*.wav
+*.m4a
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
