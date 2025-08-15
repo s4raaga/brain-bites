@@ -2,18 +2,20 @@
 .env
 .env.*
 
-# Output files - large video files
+# Output files - large generated video files
 outputs/
-*.mp4
-*.avi
-*.mov
-*.mkv
 
 # Temp files - generated audio and temporary files
 temp/
-*.mp3
-*.wav
-*.m4a
+
+# Generated media files (exclude from outputs/temp, but allow in assets)
+outputs/*.mp4
+outputs/*.avi
+outputs/*.mov
+outputs/*.mkv
+temp/*.mp3
+temp/*.wav
+temp/*.m4a
 
 # Python
 __pycache__/

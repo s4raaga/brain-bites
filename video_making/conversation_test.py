@@ -111,7 +111,6 @@ def create_conversation_video():
     inputs_dir = base_dir / "inputs"
     outputs_dir = base_dir / "outputs"
     assets_dir = inputs_dir / "assets"
-    backgrounds_dir = inputs_dir / "backgrounds"
     temp_dir = base_dir / "temp"
     temp_dir.mkdir(exist_ok=True)
     
@@ -121,12 +120,32 @@ def create_conversation_video():
     if not elevenlabs_api_key:
         raise ValueError("ELEVENLABS_API_KEY not found in .env file")
     
-    # Load dialogue configuration
-    dialogue_path = inputs_dir / "dialogue.json"
+    # Predefined character options (2 characters for now, will expand to 5+ later)
+    PREDEFINED_CHARACTERS = {
+        'character1': {
+            'name': 'Alex',
+            'voice_id': 'pNInz6obpgDQGcFmaJgB',  # Adam - Clear male voice
+            'voice_description': 'Adam - Clear male voice',
+            'caption_color': 'white',
+            'caption_stroke_color': 'blue',
+            'image_file': 'characters/alex_head.PNG'
+        },
+        'character2': {
+            'name': 'Sam', 
+            'voice_id': 'EXAVITQu4vr4xnSDxMaL',  # Bella - Female voice
+            'voice_description': 'Bella - Female voice',
+            'caption_color': 'white',
+            'caption_stroke_color': 'hotpink', 
+            'image_file': 'characters/sam_head.PNG'
+        }
+    }
+    
+    # Load dialogue configuration (now only contains dialogue lines)
+    dialogue_path = inputs_dir / "dialogues" / "brain_processing.json"
     with open(dialogue_path, 'r', encoding='utf-8') as f:
         dialogue_config = json.load(f)
     
-    characters = dialogue_config['characters']
+    characters = PREDEFINED_CHARACTERS  # Use predefined characters
     dialogue = dialogue_config['dialogue']
     
     # Hardcoded positioning and animation settings
@@ -213,11 +232,18 @@ def create_conversation_video():
     print(f"\nTotal conversation duration: {total_duration:.1f} seconds")
     print(f"Total words: {len(all_words_with_timing)}")
     
-    # Find background video
+    # Find background video in assets/backgrounds folder
+    backgrounds_dir = assets_dir / "backgrounds"
     background_video = None
-    for video_file in backgrounds_dir.glob("*.MP4"):
+    for video_file in backgrounds_dir.glob("*.mp4"):
         background_video = str(video_file)
         break
+    
+    if not background_video:
+        # Try uppercase extension as fallback
+        for video_file in backgrounds_dir.glob("*.MP4"):
+            background_video = str(video_file)
+            break
     
     if not background_video:
         print("No background video found!")
