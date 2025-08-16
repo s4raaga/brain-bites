@@ -1,4 +1,9 @@
 moviepy==1.0.3
 python-dotenv==1.0.0
 requests==2.31.0
+<<<<<<< HEAD
 pysrt==1.1.2
+=======
+pysrt==1.1.2
+boto3==1.34.0
+>>>>>>> 28debcbe126f69a1e92c445cd251da2d57a706d3

@@ -1,4 +1,6 @@
 {
+  "title": "How Your Brain Processes Visual Information", 
+  "description": "Mind-blowing facts about how the human brain processes visual data faster than text",
   "dialogue": [
     {
       "character": "character1",
@@ -10,19 +12,11 @@
     },
     {
       "character": "character1",
-      "text": "Exactly! That's why short-form videos are so addictive. Your brain gets instant dopamine hits."
+      "text": "Exactly! That's why platforms like TikTok and YouTube are so addictive. Your brain is literally wired to consume visual content faster."
     },
     {
       "character": "character2",
-      "text": "Wow, so it's basically exploiting how our brains work naturally. That's kind of scary but fascinating!"
-    },
-    {
-      "character": "character1", 
-      "text": "Right! The rapid visual changes make it nearly impossible to scroll away. It's the science behind brainrot content."
-    },
-    {
-      "character": "character2",
-      "text": "Mind blown! I'll never look at TikTok the same way again."
+      "text": "Mind blown! So when I'm scrolling through social media, my brain is processing all those images and videos at lightning speed?"
     }
   ]
 }

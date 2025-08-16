@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "expo-av": "^15.1.7",
+    "expo-video": "^2.2.2"
+  }
+}

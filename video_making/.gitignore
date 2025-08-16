@@ -1,6 +1,6 @@
 # Environment files - protect API keys
 .env
-.env.*
+.env
 
 # Output files - large generated video files
 outputs/
@@ -54,5 +54,8 @@ wheels/
 .Trashes
 ehthumbs.db
 Thumbs.db
+<<<<<<< HEAD
 
 error.log
+=======
+>>>>>>> 28debcbe126f69a1e92c445cd251da2d57a706d3
