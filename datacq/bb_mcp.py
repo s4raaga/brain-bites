@@ -677,7 +677,7 @@ def resource_downloads_file(name: str) -> bytes:
 
 # ---------- New tool: save JSON transcript/video script ----------
 
-@mcp.tool("save_json", description="Persist a grounded video script JSON. Fields: title (3-8 words), description (1-2 sentences citing course/source), dialogue (list of {speaker,text}). Speakers allowed: Narrator, Alex, Taylor, Jordan, Casey, Riley, Sam, Morgan. Style rotate: dialog, mentor->learner, monologue, anecdote. Only call AFTER sufficient read_pdf_text evidence (≥400 chars per covered course/topic). No hallucinations.")
+@mcp.tool("save_json", description="Persist a grounded video script JSON. Fields: title (3-8 words), description (1-2 sentences citing course/source), dialogue (list of {character,text}). characters allowed: Speaker A, Speaker B. Style rotate: dialog, mentor->learner, monologue, anecdote. Only call AFTER sufficient read_pdf_text evidence (≥400 chars per covered course/topic). No hallucinations.")
 def tool_save_json(filename: str, data: Union[Dict[str, Any], List[Any], str], overwrite: bool = False, pretty: bool = True) -> dict:  # type: ignore[valid-type]
     """Persist JSON content under the fixed transcripts directory.
 
@@ -699,7 +699,7 @@ def tool_save_json(filename: str, data: Union[Dict[str, Any], List[Any], str], o
     # Helper: attempt to repair common malformed script JSON that was previously double-encoded
     def _try_repair_script_string(raw: str) -> Optional[Any]:
         """Attempt to repair a JSON-ish string where dialogue entries look like
-        {"speaker": "Name": "Utterance"} (colon instead of comma) which caused a
+        {"character": "Name": "Utterance"} (colon instead of comma) which caused a
         parse failure and got wrapped inside {"text": "..."} previously.
 
         Strategy:
@@ -710,11 +710,11 @@ def tool_save_json(filename: str, data: Union[Dict[str, Any], List[Any], str], o
         if '"dialogue"' not in raw:
             return None
         repaired = raw
-        # Replace occurrences inside dialogue array. Pattern: {"speaker": "X": "Y"}
-        pattern = re.compile(r'\{\s*"speaker"\s*:\s*"([^"]+)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*\}')
+        # Replace occurrences inside dialogue array. Pattern: {"character": "X": "Y"}
+        pattern = re.compile(r'\{\s*"character"\s*:\s*"([^"]+)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*\}')
         # Loop until no more replacements (avoid catastrophic backtracking by limiting iterations)
         for _ in range(50):  # safety cap
-            new_repaired = pattern.sub(lambda m: '{"speaker": "%s", "text": "%s"}' % (m.group(1), m.group(2)), repaired)
+            new_repaired = pattern.sub(lambda m: '{"character": "%s", "text": "%s"}' % (m.group(1), m.group(2)), repaired)
             if new_repaired == repaired:
                 break
             repaired = new_repaired

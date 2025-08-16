@@ -52,7 +52,7 @@ Download Guidance:
 
 Formatting (reinforced in save_json tool description):
     - JSON fields: title, description, dialogue.
-    - Speakers allowed: Speaker A, Speaker B (ONLY these two; alternate as needed, no other names or Narrator lines).
+    - characters allowed: Speaker A, Speaker B (ONLY these two; alternate as needed, no other names or Narrator lines).
     - Vary style across scripts: dialogue, mentor->learner, monologue (single speaker), anecdote—still only using Speaker A / Speaker B labels.
 
 Constraints:

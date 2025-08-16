@@ -44,10 +44,6 @@ try:
 except Exception:  # noqa: BLE001
 	bb_agent = None  # type: ignore
 
-try:
-	from video_making.main import BrainrotReelGenerator
-except Exception:  # noqa: BLE001
-	BrainrotReelGenerator = None  # type: ignore
 
 
 BASE_URL = "https://learn.uq.edu.au/"  # consistent with agent logic
@@ -238,7 +234,7 @@ class OrchestratorGUI:
 		def do_login():
 			mode = "headless" if self.headless_var.get() else "visible"
 			self.log(f"Starting login flow ({mode})…")
-			resp = tool_login(base_url=BASE_URL, headless=self.headless_var.get())  # returns dict
+			resp = tool_login()  # returns dict
 			self.log("Login complete. Logs:")
 			for line in resp.get("logs", []):
 				self.log(f"  {line}")
@@ -308,45 +304,6 @@ Never introduce any other speaker names. Use only these exact labels. Each scrip
 			self.load_existing_scripts()
 			return f"generated {len(new_files)} scripts"
 		self._run_in_thread(do_generate)
-
-	def on_make_video(self):
-		if BrainrotReelGenerator is None:
-			messagebox.showerror("Unavailable", "Video generator not importable")
-			return
-		if not os.getenv("ELEVENLABS_API_KEY"):
-			messagebox.showerror("Missing Key", "ELEVENLABS_API_KEY env var not set (.env in video_making)")
-			return
-		sel = self.script_list.curselection()
-		if not sel:
-			return
-		idx = sel[0]
-		script_meta = self.generated_scripts[idx]
-		obj = safe_read_json(script_meta.path)
-		if not isinstance(obj, dict):
-			messagebox.showerror("Invalid JSON", "Selected file not a dict JSON")
-			return
-		dialogue = obj.get("dialogue") or []
-		if not isinstance(dialogue, list) or not dialogue:
-			messagebox.showerror("No Dialogue", "Dialogue missing in JSON")
-			return
-		# Compose plain script text
-		script_lines: List[str] = []
-		for turn in dialogue:
-			if isinstance(turn, dict):
-				sp = str(turn.get("speaker", "")).strip() or "Speaker A"
-				tx = str(turn.get("text", "")).strip()
-				if tx:
-					script_lines.append(f"{sp}: {tx}")
-		script_text = "\n".join(script_lines)
-		self.set_status("Building video…")
-		self.make_video_btn.configure(state=tk.DISABLED)
-		def do_video():
-			self.log(f"Generating video for {script_meta.path.name}…")
-			gen = BrainrotReelGenerator()
-			out_path = gen.run_with_script(script_text)
-			self.log(f"Video created: {out_path}")
-			return out_path
-		self._run_in_thread(do_video)
 
 
 def main():  # pragma: no cover - interactive
