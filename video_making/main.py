@@ -307,6 +307,30 @@ class BrainrotReelGenerator:
             self.logger.error(traceback.format_exc())
             sys.exit(1)
 
+    # --- Added helper for external callers (e.g., Tkinter GUI) to supply script text directly ---
+    def run_with_script(self, script_text: str) -> str:
+        """End-to-end generation given an in-memory script string.
+
+        Mirrors run(), but skips reading from inputs/script.txt so GUI orchestrators
+        can pass dynamic script text.
+        """
+        try:
+            if not script_text or not script_text.strip():
+                raise ValueError("Provided script_text is empty")
+            script = script_text.strip()
+            self.logger.info("Starting Brainrot Reel Generator (external script)...")
+            voice_path = self.generate_voice(script)
+            captions_path = self.generate_captions(voice_path)
+            background_path = self.select_background_video()
+            output_path = self.create_video(script, voice_path, captions_path, background_path)
+            self.cleanup_temp_files()
+            self.logger.info(f"✅ SUCCESS! Video created: {output_path}")
+            return output_path
+        except Exception as e:  # noqa: BLE001
+            self.logger.error(f"❌ ERROR: {e}")
+            self.logger.error(traceback.format_exc())
+            raise
+
 
 if __name__ == "__main__":
     generator = BrainrotReelGenerator()
