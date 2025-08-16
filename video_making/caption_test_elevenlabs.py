@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Caption Test with ElevenLabs Alignment - One word every 0.1 seconds
-Uses ElevenLabs text-to-speech with timestamps instead of OpenAI Whisper
+Caption Test with ElevenLabs Alignment - One word every ~0.1 seconds.
+Generates voice plus alignment timestamps to build word-level captions (no external transcription service).
 """
 
 import os

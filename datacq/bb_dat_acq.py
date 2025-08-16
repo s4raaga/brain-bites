@@ -16,6 +16,8 @@ from playwright.sync_api import sync_playwright, BrowserContext, Page  # type: i
 
 DEFAULT_PROFILE = os.path.join(os.path.expanduser("~"), ".bb_py_profile")
 DEFAULT_TIMEOUT = 30_000  # ms
+# Hard‑coded Blackboard base URL per user requirement (was previously a CLI argument)
+BASE_URL = "https://learn.uq.edu.au/"
 
 # ---------- helpers ----------
 
@@ -277,8 +279,9 @@ def wait_until_logged_in(page: Page, base_url: str, max_wait_s: int = 180, requi
 
 # ---------- Core functions ----------
 
-def cmd_login(base_url: str, profile_dir: str, headless: bool, stay_open: bool = False) -> None:
-    eprint(f"[login] Opening browser to {base_url} ...")
+def cmd_login(profile_dir: str, headless: bool, stay_open: bool = False) -> None:
+    base_url = BASE_URL
+    eprint(f"[login] Opening browser to {base_url} ... (hard-coded)")
     with launch_context(headless=headless, profile_dir=profile_dir) as ctx:
         try:
             existing = ctx.cookies()
@@ -424,7 +427,8 @@ def _extract_courses_from_dom(html: str, base_url: str) -> List[Tuple[str, str]]
             seen.add(url)
     return uniq
 
-def cmd_list_courses(base_url: str, profile_dir: str, headless: bool) -> None:
+def cmd_list_courses(profile_dir: str, headless: bool) -> None:
+    base_url = BASE_URL
     with launch_context(headless=headless, profile_dir=profile_dir) as ctx:
         try:
             existing = ctx.cookies()
@@ -542,7 +546,8 @@ def _expand_course_sections(page: Page, rounds: int = 12) -> None:
                         break
                     #time.sleep(0.1)
 
-def cmd_list_content(base_url: str, profile_dir: str, course_url: str, headless: bool) -> None:
+def cmd_list_content(profile_dir: str, course_url: str, headless: bool) -> None:
+    base_url = BASE_URL
     with launch_context(headless=headless, profile_dir=profile_dir) as ctx:
         _rehydrate_session_cookies(ctx, profile_dir, base_url)
         page = ctx.new_page()
@@ -581,7 +586,8 @@ def _guess_filename_from_url(url: str) -> str:
         fname += '.pdf'
     return _sanitize_filename(fname)
 
-def cmd_download(base_url: str, profile_dir: str, course_url: str, out_dir: str, headless: bool) -> None:
+def cmd_download(profile_dir: str, course_url: str, out_dir: str, headless: bool) -> None:
+    base_url = BASE_URL
     """Download (currently PDF-focused) resources from a course page.
 
     Behavior:
@@ -653,7 +659,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     p = argparse.ArgumentParser(
         prog="bb_dat_acq",
     )
-    p.add_argument("--base-url", required=True, help="Your Blackboard landing URL (e.g., https://learn.uq.edu.au/).")
+    # Base URL now defaults to UQ learn; can be overridden if needed.
+    # Base URL is now hard-coded (learn.uq.edu.au); argument removed.
     p.add_argument("--profile-dir", default=DEFAULT_PROFILE, help=f"Where to store the browser profile (default: {DEFAULT_PROFILE!r}).")
     p.add_argument("--headless", action="store_true", help="Run browser headless (only if already logged in).")
 
@@ -676,18 +683,16 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     args = p.parse_args(argv)
 
-    base_url = args.base_url.rstrip("/") + "/"
     if args.cmd == "login":
-        cmd_login(base_url, args.profile_dir, args.headless, getattr(args, "stay_open", False))
+        cmd_login(args.profile_dir, args.headless, getattr(args, "stay_open", False))
     elif args.cmd == "list-courses":
-        cmd_list_courses(base_url, args.profile_dir, args.headless)
+        cmd_list_courses(args.profile_dir, args.headless)
     elif args.cmd == "session-info":
         cmd_session_info(args.profile_dir)
     elif args.cmd == "list-content":
-        cmd_list_content(base_url, args.profile_dir, args.course_url, args.headless)
+        cmd_list_content(args.profile_dir, args.course_url, args.headless)
     elif args.cmd == "download":
         cmd_download(
-            base_url,
             args.profile_dir,
             args.course_url,
             args.out,

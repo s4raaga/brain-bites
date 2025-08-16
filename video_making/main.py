@@ -16,7 +16,6 @@ from typing import Optional, List
 
 import requests
 from dotenv import load_dotenv
-from openai import OpenAI
 from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip, TextClip
 import pysrt
 
@@ -28,6 +27,14 @@ class BrainrotReelGenerator:
         self.outputs_dir = self.base_dir / "outputs" 
         self.temp_dir = self.base_dir / "temp"
         self.backgrounds_dir = self.inputs_dir / "backgrounds"
+        
+        # Ensure required directories exist
+        for _dir in [self.inputs_dir, self.outputs_dir, self.temp_dir, self.backgrounds_dir]:
+            try:
+                _dir.mkdir(parents=True, exist_ok=True)
+            except Exception as dir_err:  # noqa: BLE001
+                # Log but continue; later operations will surface errors if critical
+                print(f"Warning: could not create directory {_dir}: {dir_err}")
         
         # Setup logging
         logging.basicConfig(
@@ -46,16 +53,12 @@ class BrainrotReelGenerator:
         # Load config
         self.config = self.load_config()
         
-        # Initialize APIs
+    # Initialize API keys (only ElevenLabs used)
         self.elevenlabs_api_key = os.getenv('ELEVENLABS_API_KEY')
-        self.openai_api_key = os.getenv('OPENAI_API_KEY')
-        
         if not self.elevenlabs_api_key:
             raise ValueError("ELEVENLABS_API_KEY not found in .env file")
-        if not self.openai_api_key:
-            raise ValueError("OPENAI_API_KEY not found in .env file")
-            
-        self.openai_client = OpenAI(api_key=self.openai_api_key)
+        # Placeholder for alignment data returned by ElevenLabs
+        self._alignment_data = None
 
     def load_config(self) -> dict:
         """Load configuration from config.json"""
@@ -100,55 +103,124 @@ class BrainrotReelGenerator:
         return script
 
     def generate_voice(self, text: str) -> str:
-        """Generate AI voice using ElevenLabs API"""
+        """Generate AI voice with alignment (ElevenLabs /with-timestamps endpoint)."""
         voice_path = self.temp_dir / "voice.mp3"
-        
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.config['voice_id']}"
-        
+        # Defensive: ensure temp directory exists (in case it was deleted externally)
+        voice_path.parent.mkdir(parents=True, exist_ok=True)
+
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.config['voice_id']}/with-timestamps"
+
         headers = {
-            "Accept": "audio/mpeg",
+            "Accept": "application/json",
             "Content-Type": "application/json",
-            "xi-api-key": self.elevenlabs_api_key
+            "xi-api-key": self.elevenlabs_api_key,
         }
-        
+
         data = {
             "text": text,
             "model_id": "eleven_monolingual_v1",
             "voice_settings": {
                 "stability": self.config['voice_stability'],
-                "similarity_boost": self.config['voice_similarity_boost']
-            }
+                "similarity_boost": self.config['voice_similarity_boost'],
+            },
         }
-        
-        self.logger.info("Generating AI voice...")
+
+        self.logger.info("Generating AI voice (with alignment)...")
         response = requests.post(url, json=data, headers=headers)
-        
+
         if response.status_code != 200:
             raise Exception(f"ElevenLabs API error: {response.status_code} - {response.text}")
-        
-        with open(voice_path, 'wb') as f:
-            f.write(response.content)
-        
-        self.logger.info(f"Voice generated: {voice_path}")
+
+        # Expect JSON containing base64 audio + alignment meta
+        try:
+            result = response.json()
+        except ValueError as json_err:  # noqa: BLE001
+            raise Exception("Unexpected ElevenLabs response; expected JSON with alignment.") from json_err
+
+        # Store alignment for later caption generation
+        self._alignment_data = result.get("alignment")
+        if not self._alignment_data:
+            self.logger.warning("No alignment data returned; captions will be disabled.")
+
+        # Decode audio
+        import base64  # local import to limit global deps
+
+        audio_b64 = result.get("audio_base64")
+        if not audio_b64:
+            raise Exception("ElevenLabs response missing audio_base64")
+        audio_bytes = base64.b64decode(audio_b64)
+        with open(voice_path, "wb") as f:
+            f.write(audio_bytes)
+
+        self.logger.info(f"Voice generated (with alignment): {voice_path}")
         return str(voice_path)
 
     def generate_captions(self, audio_path: str) -> str:
-        """Generate captions using OpenAI Whisper"""
+        """Generate captions from ElevenLabs alignment data.
+
+        If alignment is unavailable, returns an empty SRT (no captions).
+        """
         captions_path = self.temp_dir / "captions.srt"
-        
-        self.logger.info("Generating captions with Whisper...")
-        
-        with open(audio_path, "rb") as audio_file:
-            transcript = self.openai_client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file,
-                response_format="srt"
-            )
-        
-        with open(captions_path, 'w', encoding='utf-8') as f:
-            f.write(transcript)
-        
-        self.logger.info(f"Captions generated: {captions_path}")
+        alignment = self._alignment_data
+        if not alignment:
+            self.logger.warning("Skipping captions: no alignment data available.")
+            captions_path.write_text("", encoding='utf-8')
+            return str(captions_path)
+
+        characters = alignment.get('characters') or []
+        starts = alignment.get('character_start_times_seconds') or []
+        ends = alignment.get('character_end_times_seconds') or []
+        if not (characters and starts and ends) or not len(characters) == len(starts) == len(ends):
+            self.logger.warning("Alignment data malformed; skipping captions.")
+            captions_path.write_text("", encoding='utf-8')
+            return str(captions_path)
+
+        # Aggregate into words
+        words = []
+        current_word = []
+        current_start = None
+        punctuation = set([' ', '\n', '\t']) | set(list('.!?,;:'))
+        for i, ch in enumerate(characters):
+            if ch in punctuation:
+                if current_word:
+                    words.append({
+                        'text': ''.join(current_word),
+                        'start': current_start,
+                        'end': ends[i-1] if i > 0 else starts[i]
+                    })
+                    current_word = []
+                    current_start = None
+            else:
+                if current_start is None:
+                    current_start = starts[i]
+                current_word.append(ch)
+        if current_word:
+            words.append({
+                'text': ''.join(current_word),
+                'start': current_start,
+                'end': ends[-1]
+            })
+
+        def fmt_ts(sec: float) -> str:
+            ms = int(round(sec * 1000))
+            h = ms // 3600000
+            ms %= 3600000
+            m = ms // 60000
+            ms %= 60000
+            s = ms // 1000
+            ms %= 1000
+            return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+        # For now, each word is its own caption entry (fast & readable for shorts)
+        lines = []
+        for idx, w in enumerate(words, start=1):
+            start_ts = fmt_ts(w['start'])
+            end_ts = fmt_ts(max(w['end'], w['start'] + 0.05))  # ensure minimum duration
+            text = w['text']
+            lines.append(f"{idx}\n{start_ts} --> {end_ts}\n{text}\n")
+
+        captions_path.write_text("\n".join(lines), encoding='utf-8')
+        self.logger.info(f"Captions generated from alignment: {captions_path}")
         return str(captions_path)
 
     def select_background_video(self) -> str:

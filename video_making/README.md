@@ -5,7 +5,7 @@ Automated Python script for creating short-form "brainrot" reels with AI narrati
 ## Features
 
 - 🎙️ **AI Voice Generation** using ElevenLabs API
-- 📝 **Auto Caption Generation** using OpenAI Whisper
+- 📝 **Auto Caption Generation** using ElevenLabs alignment timestamps (no Whisper dependency)
 - 🎮 **Background Gameplay** support with automatic looping
 - 📱 **Vertical Format** optimized for TikTok/Instagram Reels (9:16)
 - ⚙️ **Configurable Settings** for voice, captions, and video quality
@@ -26,12 +26,10 @@ Create a `.env` file in the `video_making` directory:
 
 ```env
 ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
 ```
 
 **Getting API Keys:**
 - **ElevenLabs**: Sign up at [elevenlabs.io](https://elevenlabs.io) and get your API key from the profile page
-- **OpenAI**: Sign up at [platform.openai.com](https://platform.openai.com) and create an API key
 
 ### 3. Prepare Content
 
@@ -74,7 +72,7 @@ python video_making/main.py
 The script will:
 1. ✅ Read your script from `inputs/script.txt`
 2. 🎙️ Generate AI narration using ElevenLabs
-3. 📝 Create synced captions using Whisper
+3. 📝 Create word-level captions using ElevenLabs alignment
 4. 🎮 Select and process a random background video
 5. 🎬 Compose the final vertical video with captions
 6. 💾 Save the result in `outputs/final_[timestamp].mp4`
@@ -139,9 +137,9 @@ Your final video will have:
 - Verify your API key is valid and has credits
 - Check if the voice_id in config.json exists
 
-**"OpenAI API error"**
-- Verify your OpenAI API key is valid and has credits
-- Ensure you have access to the Whisper API
+**"Captions missing"**
+- ElevenLabs alignment endpoint may have failed—check logs for alignment warnings
+- Ensure you didn't exceed rate limits
 
 ### Logs
 
@@ -169,7 +167,7 @@ video_making/
 1. **Script Length**: Keep scripts 30-60 seconds for optimal engagement
 2. **Background Videos**: Use high-quality, visually interesting gameplay
 3. **Voice Selection**: Test different ElevenLabs voices to find your style
-4. **Caption Timing**: Whisper automatically syncs captions to speech
+4. **Caption Timing**: Alignment-based word timestamps generate precise captions
 5. **File Naming**: Output files include timestamps for easy organization
 
 ---

@@ -54,3 +54,5 @@ wheels/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+error.log

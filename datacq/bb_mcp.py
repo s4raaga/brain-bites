@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Tuple, Any, Union
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup  # type: ignore
+from pypdf import PdfReader  # type: ignore
 from playwright.sync_api import BrowserContext, Page, sync_playwright  # type: ignore
 
 # --- MCP server wrapper ---
@@ -31,6 +32,7 @@ DOWNLOAD_DIR = os.path.abspath("downloads")
 TRANSCRIPTS_DIR = os.path.abspath("transcripts")
 
 DEFAULT_TIMEOUT = 30_000  # ms
+BASE_URL = "https://learn.uq.edu.au/"  # Hard-coded per user requirement
 
 # ---------- helpers ----------
 
@@ -444,11 +446,11 @@ def _unique_path(base_dir: str, filename: str) -> str:
 
 # ---------- MCP tools (profile/out dir fixed; no stay_open) ----------
 
-@mcp.tool("login", description="Open a Chromium session to Blackboard and cache the session (cookies, local/session storage). Uses fixed 'profile' dir.")
-def tool_login(base_url: str, headless: bool = False) -> dict:
+@mcp.tool("login", description="Establish / refresh authenticated Blackboard Chromium session (persisted profile dir). ONLY call if later tools show unauthenticated content. Base URL hard-coded.")
+def tool_login(headless: bool = False) -> dict:
     """Returns diagnostics about the saved session."""
     def _do():
-        bu = base_url.rstrip("/") + "/"
+        bu = BASE_URL
         logs: List[str] = []
         with launch_context(headless=headless, profile_dir=PROFILE_DIR) as ctx:
             try:
@@ -484,7 +486,7 @@ def tool_login(base_url: str, headless: bool = False) -> dict:
                 logs.append("storage_state_written=True")
             except Exception as e:
                 logs.append(f"storage_state_error={e!s}")
-            cookie_brief = []
+            cookie_brief: List[str] = []
             try:
                 cookies = ctx.cookies()
                 host_hint = _read_final_host(PROFILE_DIR) or hostname(bu)
@@ -498,10 +500,10 @@ def tool_login(base_url: str, headless: bool = False) -> dict:
         }
     return _run_in_thread(_do)
 
-@mcp.tool("list_courses", description="List all courses detected on the Blackboard landing/courses page.")
-def tool_list_courses(base_url: str, headless: bool = False) -> dict:
+@mcp.tool("list_courses", description="List available courses. Base URL hard-coded. First actionable step: pick the first 4 REAL courses after any generic training entry; ignore older archived ones.")
+def tool_list_courses(headless: bool = False) -> dict:
     def _do():
-        bu = base_url.rstrip("/") + "/"
+        bu = BASE_URL
         with launch_context(headless=headless, profile_dir=PROFILE_DIR) as ctx:
             try:
                 existing = ctx.cookies()
@@ -514,23 +516,16 @@ def tool_list_courses(base_url: str, headless: bool = False) -> dict:
             page.set_default_timeout(DEFAULT_TIMEOUT)
             _inject_stored_web_storage(page, bu, PROFILE_DIR)
             direct_ultra = urljoin(bu, 'ultra/course')
-            # Try to land directly on ultra course list first (non-fatal)
             with contextlib.suppress(Exception):
                 page.goto(direct_ultra, wait_until="domcontentloaded")
-            # Always ensure base root is visited (some auth flows rely on it)
             with contextlib.suppress(Exception):
                 page.goto(bu, wait_until="domcontentloaded")
             wait_until_logged_in(page, bu, headless=headless)
-
-            # Give dynamic framework (React) a moment to populate cards
             with contextlib.suppress(Exception):
                 page.wait_for_selector('[data-automation-id="course-card-title"] a, a[href*="course_id="]', timeout=5_000)
             time.sleep(1)
-
             html = page.content()
             courses = _extract_courses_from_dom(html, bu)
-
-            # Fallback: navigate explicitly to /ultra/course if empty
             if not courses:
                 with contextlib.suppress(Exception):
                     page.goto(direct_ultra, wait_until="domcontentloaded")
@@ -541,15 +536,12 @@ def tool_list_courses(base_url: str, headless: bool = False) -> dict:
                     time.sleep(1)
                     html = page.content()
                     courses = _extract_courses_from_dom(html, bu)
-
-            # If still empty, dump HTML for debugging
             debug_path = os.path.join(PROFILE_DIR, "last_courses_page.html")
             try:
                 with open(debug_path, "w", encoding="utf-8") as f:
                     f.write(html)
             except Exception:
                 debug_path = None
-
             return {
                 "courses": [{"name": n, "url": u} for n, u in courses],
                 "debug": {
@@ -560,10 +552,10 @@ def tool_list_courses(base_url: str, headless: bool = False) -> dict:
             }
     return _run_in_thread(_do)
 
-@mcp.tool("list_content", description="Lists all content pages within a specific course.")
-def tool_list_content(base_url: str, course_url: str, headless: bool = False, expand_sections: bool = True) -> dict:
+@mcp.tool("list_content", description="List downloadable content pages for a chosen course (base URL hard-coded).")
+def tool_list_content(course_url: str = "", headless: bool = False, expand_sections: bool = True) -> dict:
     def _do():
-        bu = base_url.rstrip("/") + "/"
+        bu = BASE_URL
         with launch_context(headless=headless, profile_dir=PROFILE_DIR) as ctx:
             _rehydrate_session_cookies(ctx, PROFILE_DIR, bu)
             page = ctx.new_page()
@@ -578,8 +570,8 @@ def tool_list_content(base_url: str, course_url: str, headless: bool = False, ex
             return {"items": [{"title": t, "url": u} for t, u in items]}
     return _run_in_thread(_do)
 
-@mcp.tool("download", description="Download PDFs from a Blackboard content page.")
-def tool_download(base_url: str, content_url: str | None = None, course_url: str | None = None, headless: bool = False) -> dict:
+@mcp.tool("download", description="Download PDF(s) for a specific content page (base URL hard-coded). Works BEST for lecture or workbook style items (skip quizzes/discussions). Fetch only what you need per distinct topic; avoid duplicates.")
+def tool_download(content_url: str | None = None, course_url: str | None = None, headless: bool = False) -> dict:
     # Backward compatibility shim
     if content_url is None:
         content_url = course_url
@@ -589,7 +581,7 @@ def tool_download(base_url: str, content_url: str | None = None, course_url: str
     deprecated_used = course_url is not None and course_url == content_url
 
     def _do():
-        bu = base_url.rstrip("/") + "/"
+        bu = BASE_URL
         ensure_dir(DOWNLOAD_DIR)
         saved: List[Dict[str, str]] = []
         with launch_context(headless=headless, profile_dir=PROFILE_DIR) as ctx:
@@ -609,14 +601,12 @@ def tool_download(base_url: str, content_url: str | None = None, course_url: str
                     continue
                 full = urljoin(bu, raw)
                 pdf_urls.add(full)
-
             if not pdf_urls:
                 note = "No data-ally-file-preview-url PDF URLs discovered. Did you pass a content page?"
                 resp: Dict[str, object] = {"saved_count": 0, "files": [], "out_dir": DOWNLOAD_DIR, "note": note}
                 if deprecated_used:
                     resp["deprecation"] = "Parameter 'course_url' is deprecated; use 'content_url'."
                 return resp
-
             selected: List[str] = sorted(pdf_urls)
             existing_names: set[str] = set()
             client = ctx.request
@@ -643,7 +633,6 @@ def tool_download(base_url: str, content_url: str | None = None, course_url: str
                         saved.append({"name": fname, "path": os.path.abspath(target_path), "source_url": u, "error": f"HTTP {resp.status}"})
                 except Exception as e:
                     saved.append({"name": fname, "path": os.path.abspath(target_path), "source_url": u, "error": str(e)})
-
         result: Dict[str, object] = {
             "saved_count": len([s for s in saved if "error" not in s]),
             "files": saved,
@@ -688,7 +677,7 @@ def resource_downloads_file(name: str) -> bytes:
 
 # ---------- New tool: save JSON transcript/video script ----------
 
-@mcp.tool("save_json", description="Save a JSON video script (arbitrary structured data) into the transcripts directory.")
+@mcp.tool("save_json", description="Persist a grounded video script JSON. Fields: title (3-8 words), description (1-2 sentences citing course/source), dialogue (list of {speaker,text}). Speakers allowed: Narrator, Alex, Taylor, Jordan, Casey, Riley, Sam, Morgan. Style rotate: dialog, mentor->learner, monologue, anecdote. Only call AFTER sufficient read_pdf_text evidence (≥400 chars per covered course/topic). No hallucinations.")
 def tool_save_json(filename: str, data: Union[Dict[str, Any], List[Any], str], overwrite: bool = False, pretty: bool = True) -> dict:  # type: ignore[valid-type]
     """Persist JSON content under the fixed transcripts directory.
 
@@ -707,6 +696,36 @@ def tool_save_json(filename: str, data: Union[Dict[str, Any], List[Any], str], o
     if not overwrite and os.path.exists(target):
         target = _unique_path(TRANSCRIPTS_DIR, safe_name)
 
+    # Helper: attempt to repair common malformed script JSON that was previously double-encoded
+    def _try_repair_script_string(raw: str) -> Optional[Any]:
+        """Attempt to repair a JSON-ish string where dialogue entries look like
+        {"speaker": "Name": "Utterance"} (colon instead of comma) which caused a
+        parse failure and got wrapped inside {"text": "..."} previously.
+
+        Strategy:
+          1. Regex replace problematic dialogue objects.
+          2. Retry json.loads; if success and result looks like a script (has title & dialogue), return it.
+        """
+        # Fast exit if obvious keys not present
+        if '"dialogue"' not in raw:
+            return None
+        repaired = raw
+        # Replace occurrences inside dialogue array. Pattern: {"speaker": "X": "Y"}
+        pattern = re.compile(r'\{\s*"speaker"\s*:\s*"([^"]+)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*\}')
+        # Loop until no more replacements (avoid catastrophic backtracking by limiting iterations)
+        for _ in range(50):  # safety cap
+            new_repaired = pattern.sub(lambda m: '{"speaker": "%s", "text": "%s"}' % (m.group(1), m.group(2)), repaired)
+            if new_repaired == repaired:
+                break
+            repaired = new_repaired
+        try:
+            obj = json.loads(repaired)
+        except Exception:
+            return None
+        if isinstance(obj, dict) and 'dialogue' in obj and isinstance(obj.get('dialogue'), list):
+            return obj
+        return None
+
     # Normalize data
     obj: Any
     if isinstance(data, (dict, list)):
@@ -717,7 +736,12 @@ def tool_save_json(filename: str, data: Union[Dict[str, Any], List[Any], str], o
             try:
                 obj = json.loads(s)
             except Exception:
-                obj = {"text": s}
+                # Try targeted repair of malformed script structure
+                repaired = _try_repair_script_string(s)
+                if repaired is not None:
+                    obj = repaired
+                else:
+                    obj = {"text": s}
         else:
             obj = {"text": ""}
     else:
@@ -752,6 +776,43 @@ def tool_save_json(filename: str, data: Union[Dict[str, Any], List[Any], str], o
         "bytes": size,
         "object_type": type(obj).__name__,
         "keys": top_keys,
+    }
+
+# ---------- New tool: read PDF text ----------
+
+@mcp.tool("read_pdf_text", description="Extract truncated text from a downloaded PDF for grounding. Ensure combined extracted text for a topic ≥400 chars before scripting; if short, download another PDF.")
+def tool_read_pdf_text(name: str, max_pages: int = 8, max_chars: int = 10_000) -> dict:
+    """Return extracted text from the first N pages of a downloaded PDF.
+
+    Parameters:
+      name: Exact filename as listed by resource://downloads (case sensitive)
+      max_pages: Limit pages parsed to control latency
+      max_chars: Truncate output text length (post extraction)
+    """
+    path = _safe_download_file_path(name)
+    try:
+        reader = PdfReader(path)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": f"open_failed: {e}"}
+    pages = min(len(reader.pages), max_pages)
+    texts: List[str] = []
+    for i in range(pages):
+        try:
+            page = reader.pages[i]
+            txt = page.extract_text() or ""
+            if txt:
+                texts.append(txt.strip())
+        except Exception as e:  # noqa: BLE001
+            texts.append(f"[page {i+1} extraction error: {e}]")
+    joined = "\n\n".join(texts)
+    if len(joined) > max_chars:
+        joined = joined[:max_chars] + "\n...[truncated]"
+    return {
+        "ok": True,
+        "name": name,
+        "pages_parsed": pages,
+        "chars": len(joined),
+        "text": joined,
     }
 
 # --- run MCP server over stdio ---
