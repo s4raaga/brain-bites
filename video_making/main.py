@@ -35,6 +35,14 @@ class BrainrotReelGenerator:
         self.temp_dir = self.base_dir / "temp"
         self.backgrounds_dir = self.inputs_dir / "assets" / "backgrounds"
         
+        # Ensure required directories exist
+        for _dir in [self.inputs_dir, self.outputs_dir, self.temp_dir, self.backgrounds_dir]:
+            try:
+                _dir.mkdir(parents=True, exist_ok=True)
+            except Exception as dir_err:  # noqa: BLE001
+                # Log but continue; later operations will surface errors if critical
+                print(f"Warning: could not create directory {_dir}: {dir_err}")
+        
         # Setup logging
         logging.basicConfig(
             level=logging.INFO,
@@ -52,7 +60,7 @@ class BrainrotReelGenerator:
         # Load config
         self.config = self.load_config()
         
-        # Initialize APIs
+    # Initialize API keys (only ElevenLabs used)
         self.elevenlabs_api_key = os.getenv('ELEVENLABS_API_KEY')
         
         if not self.elevenlabs_api_key:
@@ -143,36 +151,56 @@ class BrainrotReelGenerator:
         raise FileNotFoundError("No script.txt or dialogue JSON files found")
 
     def generate_voice(self, text: str) -> str:
-        """Generate AI voice using ElevenLabs API"""
+        """Generate AI voice with alignment (ElevenLabs /with-timestamps endpoint)."""
         voice_path = self.temp_dir / "voice.mp3"
-        
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.config['voice_id']}"
-        
+        # Defensive: ensure temp directory exists (in case it was deleted externally)
+        voice_path.parent.mkdir(parents=True, exist_ok=True)
+
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.config['voice_id']}/with-timestamps"
+
         headers = {
-            "Accept": "audio/mpeg",
+            "Accept": "application/json",
             "Content-Type": "application/json",
-            "xi-api-key": self.elevenlabs_api_key
+            "xi-api-key": self.elevenlabs_api_key,
         }
-        
+
         data = {
             "text": text,
             "model_id": "eleven_monolingual_v1",
             "voice_settings": {
                 "stability": self.config['voice_stability'],
-                "similarity_boost": self.config['voice_similarity_boost']
-            }
+                "similarity_boost": self.config['voice_similarity_boost'],
+            },
         }
-        
-        self.logger.info("Generating AI voice...")
+
+        self.logger.info("Generating AI voice (with alignment)...")
         response = requests.post(url, json=data, headers=headers)
-        
+
         if response.status_code != 200:
             raise Exception(f"ElevenLabs API error: {response.status_code} - {response.text}")
-        
-        with open(voice_path, 'wb') as f:
-            f.write(response.content)
-        
-        self.logger.info(f"Voice generated: {voice_path}")
+
+        # Expect JSON containing base64 audio + alignment meta
+        try:
+            result = response.json()
+        except ValueError as json_err:  # noqa: BLE001
+            raise Exception("Unexpected ElevenLabs response; expected JSON with alignment.") from json_err
+
+        # Store alignment for later caption generation
+        self._alignment_data = result.get("alignment")
+        if not self._alignment_data:
+            self.logger.warning("No alignment data returned; captions will be disabled.")
+
+        # Decode audio
+        import base64  # local import to limit global deps
+
+        audio_b64 = result.get("audio_base64")
+        if not audio_b64:
+            raise Exception("ElevenLabs response missing audio_base64")
+        audio_bytes = base64.b64decode(audio_b64)
+        with open(voice_path, "wb") as f:
+            f.write(audio_bytes)
+
+        self.logger.info(f"Voice generated (with alignment): {voice_path}")
         return str(voice_path)
 
     def generate_captions_from_script(self, script: str, audio_duration: float) -> str:
