@@ -1,6 +1,0 @@
-backend/datacc/downloads
-backend/datacc/profile
-backend/datacc/transcripts
-
-.node_modules
-**/node_modules/
