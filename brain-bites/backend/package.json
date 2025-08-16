@@ -1,0 +1,22 @@
+{
+    "name": "brain-bites-backend",
+    "private": true,
+    "type": "commonjs",
+    "scripts": {
+        "dev": "ts-node src/server.ts"
+    },
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.655.0",
+        "@aws-sdk/s3-request-presigner": "^3.655.0",
+        "cors": "^2.8.5",
+        "dotenv": "^17.2.1",
+        "express": "^4.21.2"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.19",
+        "@types/express": "^4.17.23",
+        "@types/node": "^20.11.30",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.5.4"
+    }
+}

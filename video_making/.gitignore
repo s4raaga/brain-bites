@@ -1,6 +1,6 @@
 # Environment files - protect API keys
 .env
-.env.*
+.env
 
 # Output files - large generated video files
 outputs/
