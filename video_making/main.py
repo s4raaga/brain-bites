@@ -15,8 +15,9 @@ from pathlib import Path
 from typing import Optional, List
 
 import requests
+import boto3
+from botocore.exceptions import ClientError
 from dotenv import load_dotenv
-from openai import OpenAI
 from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip, TextClip
 import pysrt
 
@@ -48,14 +49,27 @@ class BrainrotReelGenerator:
         
         # Initialize APIs
         self.elevenlabs_api_key = os.getenv('ELEVENLABS_API_KEY')
-        self.openai_api_key = os.getenv('OPENAI_API_KEY')
         
         if not self.elevenlabs_api_key:
             raise ValueError("ELEVENLABS_API_KEY not found in .env file")
-        if not self.openai_api_key:
-            raise ValueError("OPENAI_API_KEY not found in .env file")
             
-        self.openai_client = OpenAI(api_key=self.openai_api_key)
+        # Initialize S3 client
+        self.aws_access_key = os.getenv('AWS_ACCESS_KEY_ID')
+        self.aws_secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+        self.s3_bucket = os.getenv('S3_BUCKET_NAME')
+        self.s3_region = os.getenv('S3_REGION', 'us-east-1')
+        
+        if all([self.aws_access_key, self.aws_secret_key, self.s3_bucket]):
+            self.s3_client = boto3.client(
+                's3',
+                aws_access_key_id=self.aws_access_key,
+                aws_secret_access_key=self.aws_secret_key,
+                region_name=self.s3_region
+            )
+            self.logger.info("S3 client initialized")
+        else:
+            self.s3_client = None
+            self.logger.warning("S3 credentials not found, videos will only be saved locally")
 
     def load_config(self) -> dict:
         """Load configuration from config.json"""
@@ -132,24 +146,41 @@ class BrainrotReelGenerator:
         self.logger.info(f"Voice generated: {voice_path}")
         return str(voice_path)
 
-    def generate_captions(self, audio_path: str) -> str:
-        """Generate captions using OpenAI Whisper"""
+    def generate_captions_from_script(self, script: str, audio_duration: float) -> str:
+        """Generate simple captions from script text with estimated timing"""
         captions_path = self.temp_dir / "captions.srt"
         
-        self.logger.info("Generating captions with Whisper...")
+        self.logger.info("Generating captions from script...")
         
-        with open(audio_path, "rb") as audio_file:
-            transcript = self.openai_client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file,
-                response_format="srt"
-            )
+        # Split script into words and create simple timing
+        words = script.split()
+        words_per_second = len(words) / audio_duration
+        
+        # Create SRT content
+        srt_content = ""
+        for i, word in enumerate(words):
+            start_time = i / words_per_second
+            end_time = (i + 1) / words_per_second
+            
+            # Convert to SRT time format
+            start_srt = self._seconds_to_srt_time(start_time)
+            end_srt = self._seconds_to_srt_time(end_time)
+            
+            srt_content += f"{i+1}\n{start_srt} --> {end_srt}\n{word}\n\n"
         
         with open(captions_path, 'w', encoding='utf-8') as f:
-            f.write(transcript)
+            f.write(srt_content)
         
         self.logger.info(f"Captions generated: {captions_path}")
         return str(captions_path)
+    
+    def _seconds_to_srt_time(self, seconds: float) -> str:
+        """Convert seconds to SRT time format (HH:MM:SS,mmm)"""
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        millisecs = int((seconds % 1) * 1000)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d},{millisecs:03d}"
 
     def select_background_video(self) -> str:
         """Select a random background video from inputs/backgrounds/"""
@@ -267,7 +298,42 @@ class BrainrotReelGenerator:
             clip.close()
         
         self.logger.info(f"Final video created: {output_path}")
+        
+        # Upload to S3 if configured
+        if self.s3_client:
+            s3_url = self.upload_to_s3(str(output_path))
+            if s3_url:
+                self.logger.info(f"Video uploaded to S3: {s3_url}")
+                return s3_url
+        
         return str(output_path)
+
+    def upload_to_s3(self, file_path: str) -> Optional[str]:
+        """Upload video file to S3 bucket"""
+        try:
+            file_name = Path(file_path).name
+            s3_key = f"videos/{file_name}"
+            
+            self.logger.info(f"Uploading {file_name} to S3 bucket {self.s3_bucket}...")
+            
+            # Upload file
+            self.s3_client.upload_file(
+                file_path, 
+                self.s3_bucket, 
+                s3_key,
+                ExtraArgs={'ContentType': 'video/mp4'}
+            )
+            
+            # Generate S3 URL
+            s3_url = f"https://{self.s3_bucket}.s3.{self.s3_region}.amazonaws.com/{s3_key}"
+            return s3_url
+            
+        except ClientError as e:
+            self.logger.error(f"Failed to upload to S3: {e}")
+            return None
+        except Exception as e:
+            self.logger.error(f"Unexpected error uploading to S3: {e}")
+            return None
 
     def cleanup_temp_files(self):
         """Clean up temporary files"""
@@ -287,8 +353,11 @@ class BrainrotReelGenerator:
             # Step 2: Generate AI voice
             voice_path = self.generate_voice(script)
             
-            # Step 3: Generate captions
-            captions_path = self.generate_captions(voice_path)
+            # Step 3: Generate captions from script
+            audio_clip = AudioFileClip(voice_path)
+            audio_duration = audio_clip.duration
+            audio_clip.close()
+            captions_path = self.generate_captions_from_script(script, audio_duration)
             
             # Step 4: Select background video
             background_path = self.select_background_video()

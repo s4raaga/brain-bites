@@ -8,6 +8,8 @@ import os
 import json
 import requests
 import base64
+import boto3
+from botocore.exceptions import ClientError
 from pathlib import Path
 from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip, AudioFileClip, ImageClip, concatenate_audioclips
 from dotenv import load_dotenv
@@ -103,6 +105,35 @@ def words_from_alignment(alignment_data, original_text, time_offset=0):
     return words
 
 
+def upload_to_s3(file_path: str, s3_client, bucket_name: str, region: str) -> str:
+    """Upload video file to S3 bucket"""
+    try:
+        file_name = Path(file_path).name
+        s3_key = f"videos/{file_name}"
+        
+        print(f"  📤 Uploading {file_name} to S3 bucket {bucket_name}...")
+        
+        # Upload file
+        s3_client.upload_file(
+            file_path, 
+            bucket_name, 
+            s3_key,
+            ExtraArgs={'ContentType': 'video/mp4'}
+        )
+        
+        # Generate S3 URL
+        s3_url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{s3_key}"
+        print(f"  ✅ Upload successful: {s3_url}")
+        return s3_url
+        
+    except ClientError as e:
+        print(f"  ❌ Failed to upload to S3: {e}")
+        return None
+    except Exception as e:
+        print(f"  ❌ Unexpected error uploading to S3: {e}")
+        return None
+
+
 def create_java_oop_video():
     base_dir = Path(__file__).parent
     inputs_dir = base_dir / "inputs"
@@ -118,6 +149,24 @@ def create_java_oop_video():
     elevenlabs_api_key = os.getenv('ELEVENLABS_API_KEY')
     if not elevenlabs_api_key:
         raise ValueError("ELEVENLABS_API_KEY not found in .env file")
+    
+    # Initialize S3 client
+    aws_access_key = os.getenv('AWS_ACCESS_KEY_ID')
+    aws_secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+    s3_bucket = os.getenv('S3_BUCKET_NAME')
+    s3_region = os.getenv('S3_REGION', 'us-east-1')
+    
+    s3_client = None
+    if all([aws_access_key, aws_secret_key, s3_bucket]):
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
+            region_name=s3_region
+        )
+        print("  🔗 S3 client initialized")
+    else:
+        print("  ⚠️  S3 credentials not found, video will only be saved locally")
     
     # Predefined character options
     PREDEFINED_CHARACTERS = {
@@ -380,6 +429,14 @@ def create_java_oop_video():
         clip.close()
     
     print(f"  ✅ Java OOP brainrot video created: {output_path}")
+    
+    # Upload to S3 if configured
+    if s3_client:
+        s3_url = upload_to_s3(str(output_path), s3_client, s3_bucket, s3_region)
+        if s3_url:
+            print(f"  🌐 Video available at: {s3_url}")
+            return s3_url
+    
     return str(output_path)
 
 
