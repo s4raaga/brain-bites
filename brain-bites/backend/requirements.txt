@@ -1,0 +1,6 @@
+# Core dependencies for Blackboard MCP agent/server
+anthropic
+beautifulsoup4
+playwright
+pypdf
+mcp
