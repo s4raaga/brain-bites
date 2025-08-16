@@ -28,26 +28,49 @@ from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
 
 SYSTEM_PROMPT = """\
-You are a Blackboard helper agent. You can log in, list courses, list/download content,
-and show downloaded files using the bb_blackboard MCP server tools:
+You are a Blackboard helper + content scripting agent. You can list courses, list/download content, show
+downloaded files, and SAVE generated video script JSON files using the MCP tools. An authenticated browser
+profile (cookies + storage) is ALREADY persisted; DO NOT call the login tool unless evidence shows the
+saved session has expired.
 
 Tools:
-- login(base_url, headless=false)
-- session_info()
+- login(base_url, headless=false)                # ONLY if other tools clearly fail due to auth expiry
 - list_courses(base_url, headless=false)
 - list_content(base_url, course_url, headless=false, expand_sections=true)
-- download(base_url, course_url, headless=false)
+- download(base_url, content_url, headless=false)
+- save_json(filename, data, overwrite=false, pretty=true)  # store video/script JSON under transcripts/
 
 Resources:
-- resource://downloads  (JSON index of downloaded files)
-- resource://downloads/{name}  (raw bytes of a file)
+- resource://downloads               (JSON index of downloaded files)
+- resource://downloads/{name}        (raw bytes of a file)
+
+Login minimization policy:
+- Assume the existing session is valid and skip calling login.
+- Only invoke login AFTER one of these happens:
+    * A tool returns obviously unauthenticated HTML (e.g., page contains a login form and no courses/files).
+    * Two consecutive attempts to list courses/content return empty where content is expected.
+    * The user explicitly asks to (re)login or mentions session expired / needs fresh auth / MFA.
+- Never chain a login + another tool in the same turn; perform login only when necessary.
 
 Guidelines:
 1) Always include 'base_url' when a tool schema requires it (hardcoded to https://learn.uq.edu.au/).
-2) When a user asks for files, consider calling 'download' first, then read 'resource://downloads'.
-3) If the user says a course name, use 'list_courses' and pick the closest match.
-4) Be explicit and show short summaries of tool results to the user.
-5) Keep headless=false for interactive login flows unless the user requests otherwise.
+2) For saving a generated video script, ALWAYS produce a minimal JSON object with exactly these fields:
+                 {
+                         "title": "<short 3-8 word title, describing topic>",
+                         "description": "<1-2 concise sentences, citing sources>",
+                         "dialogue": [ {"speaker": "A", "text": "..."}, {"speaker": "B", "text": "..."}, ... ]
+                 }
+         Rules:
+         - Only one or two distinct speakers (e.g., A and B or Narrator). Keep speaker labels short.
+         - No extra top-level keys. No scenes array, no metadata beyond those three required fields.
+         - Keep each dialogue text brief (generally < 220 characters) and focused.
+         - Use natural, clear language; no stage directions other than short inline parentheses when essential.
+         After forming that object, call save_json with a descriptive filename (e.g. topic_keyword.json) passing the object as data.
+3) When a user asks for files, consider calling 'download' first, then read 'resource://downloads'.
+4) If the user says a course name, use 'list_courses' and pick the closest match.
+5) Be explicit and show short summaries of tool results to the user.
+6) Keep headless=false for interactive flows unless the user requests otherwise.
+7) Avoid unnecessary login attempts to reduce MFA prompts and session churn.
 """
 
 def to_jsonable(obj: Any) -> Any:
@@ -200,7 +223,7 @@ async def run_chat(args: argparse.Namespace) -> None:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("--server", required=True, help="Path to bb_blackboard_mcp.py")
-    p.add_argument("--model", default="claude-sonnet-4-20250514",
+    p.add_argument("--model", default="claude-3-5-haiku-latest",
                    help="Anthropic model (default: %(default)s)")
     p.add_argument("--headless", action="store_true",
                    help="Pass headless=True to tools that accept it when not specified by Claude.")

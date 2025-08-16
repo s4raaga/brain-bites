@@ -11,7 +11,7 @@ import time
 import threading
 import traceback
 from queue import Queue
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any, Union
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup  # type: ignore
@@ -27,6 +27,8 @@ mcp = FastMCP("bb_blackboard")
 PROFILE_DIR = os.path.abspath("profile")
 # NOTE: repo folder is 'downloads'; align constant (was previously 'download').
 DOWNLOAD_DIR = os.path.abspath("downloads")
+# Transcripts (video script JSON outputs) directory – fixed relative path
+TRANSCRIPTS_DIR = os.path.abspath("transcripts")
 
 DEFAULT_TIMEOUT = 30_000  # ms
 
@@ -409,6 +411,37 @@ def _safe_download_file_path(name: str) -> str:
         raise FileNotFoundError(f"file not found: {base}")
     return target
 
+# ---------- generic filename helpers ----------
+
+_FNAME_SAFE_PATTERN = re.compile(r'[^A-Za-z0-9._-]+')
+
+def _sanitize_json_filename(name: str) -> str:
+    name = (name or "").strip()
+    # Remove any path components
+    name = os.path.basename(name)
+    if not name:
+        name = "script.json"
+    # Force .json extension
+    if not name.lower().endswith('.json'):
+        name += '.json'
+    # Replace unsafe chars
+    stem, ext = os.path.splitext(name)
+    stem = _FNAME_SAFE_PATTERN.sub('_', stem)[:120].strip('._') or 'script'
+    return stem + ext
+
+def _unique_path(base_dir: str, filename: str) -> str:
+    ensure_dir(base_dir)
+    target = os.path.join(base_dir, filename)
+    if not os.path.exists(target):
+        return target
+    stem, ext = os.path.splitext(filename)
+    counter = 1
+    while True:
+        cand = os.path.join(base_dir, f"{stem}_{counter}{ext}")
+        if not os.path.exists(cand):
+            return cand
+        counter += 1
+
 # ---------- MCP tools (profile/out dir fixed; no stay_open) ----------
 
 @mcp.tool("login", description="Open a Chromium session to Blackboard and cache the session (cookies, local/session storage). Uses fixed 'profile' dir.")
@@ -465,42 +498,7 @@ def tool_login(base_url: str, headless: bool = False) -> dict:
         }
     return _run_in_thread(_do)
 
-@mcp.tool("session_info", description="Return diagnostic information about the persistent Chromium profile in fixed 'profile' dir.")
-def tool_session_info() -> dict:
-    p = pathlib.Path(PROFILE_DIR)
-    if not p.exists():
-        return {"exists": False, "profile_dir": str(p)}
-    total_files = 0
-    total_bytes = 0
-    for root, _, files in os.walk(p):
-        for f in files:
-            total_files += 1
-            try:
-                total_bytes += (pathlib.Path(root) / f).stat().st_size
-            except Exception:
-                pass
-    found = []
-    for c in [p / "Default" / "Network" / "Cookies", p / "Default" / "Preferences", p / "storage_state.json"]:
-        if c.exists():
-            found.append({"path": str(c.relative_to(p)), "bytes": c.stat().st_size})
-    domains: List[str] = []
-    state_file = p / "storage_state.json"
-    if state_file.exists():
-        try:
-            data = json.loads(state_file.read_text(encoding="utf-8"))
-            domains = sorted({ck.get('domain','') for ck in data.get('cookies', []) if ck.get('domain')})
-        except Exception:
-            pass
-    return {
-        "exists": True,
-        "profile_dir": str(p.resolve()),
-        "files": total_files,
-        "size_kib": round(total_bytes/1024, 1),
-        "artifacts": found,
-        "storage_state_domains": domains,
-    }
-
-@mcp.tool("list_courses", description="List courses detected on the Blackboard landing/courses page. Uses fixed 'profile' dir.")
+@mcp.tool("list_courses", description="List all courses detected on the Blackboard landing/courses page.")
 def tool_list_courses(base_url: str, headless: bool = False) -> dict:
     def _do():
         bu = base_url.rstrip("/") + "/"
@@ -562,7 +560,7 @@ def tool_list_courses(base_url: str, headless: bool = False) -> dict:
             }
     return _run_in_thread(_do)
 
-@mcp.tool("list_content", description="List downloadable-looking items within a specific course page. Uses fixed 'profile' dir.")
+@mcp.tool("list_content", description="Lists all content pages within a specific course.")
 def tool_list_content(base_url: str, course_url: str, headless: bool = False, expand_sections: bool = True) -> dict:
     def _do():
         bu = base_url.rstrip("/") + "/"
@@ -580,8 +578,16 @@ def tool_list_content(base_url: str, course_url: str, headless: bool = False, ex
             return {"items": [{"title": t, "url": u} for t, u in items]}
     return _run_in_thread(_do)
 
-@mcp.tool("download", description="Download PDFs (data-ally-file-preview-url) from a course page into fixed 'download' dir.")
-def tool_download(base_url: str, course_url: str, headless: bool = False) -> dict:
+@mcp.tool("download", description="Download PDFs from a Blackboard content page.")
+def tool_download(base_url: str, content_url: str | None = None, course_url: str | None = None, headless: bool = False) -> dict:
+    # Backward compatibility shim
+    if content_url is None:
+        content_url = course_url
+    if not content_url:
+        return {"error": "Missing required parameter: content_url (formerly course_url)."}
+
+    deprecated_used = course_url is not None and course_url == content_url
+
     def _do():
         bu = base_url.rstrip("/") + "/"
         ensure_dir(DOWNLOAD_DIR)
@@ -592,7 +598,7 @@ def tool_download(base_url: str, course_url: str, headless: bool = False) -> dic
             page.set_default_timeout(DEFAULT_TIMEOUT)
             _inject_stored_web_storage(page, bu, PROFILE_DIR)
             pdf_urls: set[str] = set()
-            page.goto(course_url, wait_until="domcontentloaded")
+            page.goto(content_url, wait_until="domcontentloaded")
             with contextlib.suppress(Exception):
                 page.wait_for_load_state("networkidle", timeout=5_000)
             html = page.content()
@@ -605,7 +611,11 @@ def tool_download(base_url: str, course_url: str, headless: bool = False) -> dic
                 pdf_urls.add(full)
 
             if not pdf_urls:
-                return {"saved_count": 0, "files": [], "out_dir": DOWNLOAD_DIR, "note": "No data-ally-file-preview-url PDF URLs discovered."}
+                note = "No data-ally-file-preview-url PDF URLs discovered. Did you pass a content page?"
+                resp: Dict[str, object] = {"saved_count": 0, "files": [], "out_dir": DOWNLOAD_DIR, "note": note}
+                if deprecated_used:
+                    resp["deprecation"] = "Parameter 'course_url' is deprecated; use 'content_url'."
+                return resp
 
             selected: List[str] = sorted(pdf_urls)
             existing_names: set[str] = set()
@@ -629,14 +639,19 @@ def tool_download(base_url: str, course_url: str, headless: bool = False) -> dic
                             f.write(data)
                         existing_names.add(fname.lower())
                         saved.append({"name": fname, "path": os.path.abspath(target_path), "source_url": u})
+                    else:
+                        saved.append({"name": fname, "path": os.path.abspath(target_path), "source_url": u, "error": f"HTTP {resp.status}"})
                 except Exception as e:
                     saved.append({"name": fname, "path": os.path.abspath(target_path), "source_url": u, "error": str(e)})
 
-        return {
+        result: Dict[str, object] = {
             "saved_count": len([s for s in saved if "error" not in s]),
             "files": saved,
             "out_dir": DOWNLOAD_DIR,
         }
+        if deprecated_used:
+            result["deprecation"] = "Parameter 'course_url' is deprecated; use 'content_url'."
+        return result
     return _run_in_thread(_do)
 
 # ---------- MCP resources (downloads directory) ----------
@@ -670,6 +685,74 @@ def resource_downloads_file(name: str) -> bytes:
     path = _safe_download_file_path(name)
     with open(path, 'rb') as f:
         return f.read()
+
+# ---------- New tool: save JSON transcript/video script ----------
+
+@mcp.tool("save_json", description="Save a JSON video script (arbitrary structured data) into the transcripts directory.")
+def tool_save_json(filename: str, data: Union[Dict[str, Any], List[Any], str], overwrite: bool = False, pretty: bool = True) -> dict:  # type: ignore[valid-type]
+    """Persist JSON content under the fixed transcripts directory.
+
+    Parameters:
+      filename: Desired file name ('.json' appended if missing). Path traversal is prevented.
+      data: The JSON-serializable structure OR a JSON string. If a string is provided we attempt to parse it; on parse failure we wrap it as {"text": <string>}.
+      overwrite: If false (default) and a file with that name exists, an incremented suffix is added.
+      pretty: Write human-readable indented JSON when True; otherwise compact.
+
+    Returns:
+      { "saved": true, "path": <absolute>, "bytes": <int>, "filename": <final name>, "object_type": <type info>, "keys": [...optional keys...] }
+    """
+    ensure_dir(TRANSCRIPTS_DIR)
+    safe_name = _sanitize_json_filename(filename)
+    target = os.path.join(TRANSCRIPTS_DIR, safe_name)
+    if not overwrite and os.path.exists(target):
+        target = _unique_path(TRANSCRIPTS_DIR, safe_name)
+
+    # Normalize data
+    obj: Any
+    if isinstance(data, (dict, list)):
+        obj = data
+    elif isinstance(data, str):
+        s = data.strip()
+        if s:
+            try:
+                obj = json.loads(s)
+            except Exception:
+                obj = {"text": s}
+        else:
+            obj = {"text": ""}
+    else:
+        # Attempt to coerce other primitives
+        obj = data
+
+    # Basic guard: ensure JSON serializable
+    try:
+        json.dumps(obj)
+    except TypeError:
+        # Fallback: convert to string
+        obj = {"error": "Non-serializable object coerced to string", "repr": repr(obj)}
+
+    try:
+        with open(target, 'w', encoding='utf-8') as f:
+            if pretty:
+                json.dump(obj, f, ensure_ascii=False, indent=2, sort_keys=True)
+            else:
+                json.dump(obj, f, ensure_ascii=False, separators=(',', ':'))
+            f.write('\n')
+    except Exception as e:  # noqa: BLE001
+        return {"saved": False, "error": str(e), "filename": os.path.basename(target)}
+
+    size = os.path.getsize(target)
+    top_keys: Optional[List[str]] = None
+    if isinstance(obj, dict):
+        top_keys = list(obj.keys())[:25]
+    return {
+        "saved": True,
+        "filename": os.path.basename(target),
+        "path": os.path.abspath(target),
+        "bytes": size,
+        "object_type": type(obj).__name__,
+        "keys": top_keys,
+    }
 
 # --- run MCP server over stdio ---
 if __name__ == "__main__":
