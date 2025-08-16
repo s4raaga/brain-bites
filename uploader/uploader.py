@@ -241,6 +241,9 @@ class OrchestratorGUI:
 			return "login done"
 		self._run_in_thread(do_login)
 
+	def on_make_video(self):
+		pass # Placeholder for video generation logic
+
 	def on_generate(self):
 		if bb_agent is None:
 			messagebox.showerror("Unavailable", "Agent module not importable")
