@@ -1,6 +1,9 @@
 // brain-bites/brain-bites/app.config.js
 export default ({ config }) => ({
   ...config,
+  plugins: [
+    "expo-video"
+  ],
   extra: {
     ...config.extra,
     S3_BUCKET_NAME: process.env.S3_BUCKET_NAME || 'your-bucket-name',

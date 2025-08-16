@@ -1,15 +1,15 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { getVideoKeys /* or getVideoIndex */ } from './videos';
+import { getVideoIndex } from './videos';
 
 const app = express();
 app.use(cors());
 
 app.get('/api/videos', async (_req, res) => {
   try {
-    const keys = await getVideoKeys();
-    res.json({ keys });                    
+    const videos = await getVideoIndex();
+    res.json({ videos });                    
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to list videos' });
