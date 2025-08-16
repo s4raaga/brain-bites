@@ -62,12 +62,6 @@ class BrainrotReelGenerator:
         
     # Initialize API keys (only ElevenLabs used)
         self.elevenlabs_api_key = os.getenv('ELEVENLABS_API_KEY')
-<<<<<<< HEAD
-        if not self.elevenlabs_api_key:
-            raise ValueError("ELEVENLABS_API_KEY not found in .env file")
-        # Placeholder for alignment data returned by ElevenLabs
-        self._alignment_data = None
-=======
         
         if not self.elevenlabs_api_key:
             raise ValueError("ELEVENLABS_API_KEY not found in .env file")
@@ -89,7 +83,6 @@ class BrainrotReelGenerator:
         else:
             self.s3_client = None
             self.logger.warning("S3 credentials not found, videos will only be saved locally")
->>>>>>> 28debcbe126f69a1e92c445cd251da2d57a706d3
 
     def load_config(self) -> dict:
         """Load configuration from config.json"""
@@ -210,74 +203,6 @@ class BrainrotReelGenerator:
         self.logger.info(f"Voice generated (with alignment): {voice_path}")
         return str(voice_path)
 
-<<<<<<< HEAD
-    def generate_captions(self, audio_path: str) -> str:
-        """Generate captions from ElevenLabs alignment data.
-
-        If alignment is unavailable, returns an empty SRT (no captions).
-        """
-        captions_path = self.temp_dir / "captions.srt"
-        alignment = self._alignment_data
-        if not alignment:
-            self.logger.warning("Skipping captions: no alignment data available.")
-            captions_path.write_text("", encoding='utf-8')
-            return str(captions_path)
-
-        characters = alignment.get('characters') or []
-        starts = alignment.get('character_start_times_seconds') or []
-        ends = alignment.get('character_end_times_seconds') or []
-        if not (characters and starts and ends) or not len(characters) == len(starts) == len(ends):
-            self.logger.warning("Alignment data malformed; skipping captions.")
-            captions_path.write_text("", encoding='utf-8')
-            return str(captions_path)
-
-        # Aggregate into words
-        words = []
-        current_word = []
-        current_start = None
-        punctuation = set([' ', '\n', '\t']) | set(list('.!?,;:'))
-        for i, ch in enumerate(characters):
-            if ch in punctuation:
-                if current_word:
-                    words.append({
-                        'text': ''.join(current_word),
-                        'start': current_start,
-                        'end': ends[i-1] if i > 0 else starts[i]
-                    })
-                    current_word = []
-                    current_start = None
-            else:
-                if current_start is None:
-                    current_start = starts[i]
-                current_word.append(ch)
-        if current_word:
-            words.append({
-                'text': ''.join(current_word),
-                'start': current_start,
-                'end': ends[-1]
-            })
-
-        def fmt_ts(sec: float) -> str:
-            ms = int(round(sec * 1000))
-            h = ms // 3600000
-            ms %= 3600000
-            m = ms // 60000
-            ms %= 60000
-            s = ms // 1000
-            ms %= 1000
-            return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
-
-        # For now, each word is its own caption entry (fast & readable for shorts)
-        lines = []
-        for idx, w in enumerate(words, start=1):
-            start_ts = fmt_ts(w['start'])
-            end_ts = fmt_ts(max(w['end'], w['start'] + 0.05))  # ensure minimum duration
-            text = w['text']
-            lines.append(f"{idx}\n{start_ts} --> {end_ts}\n{text}\n")
-
-        captions_path.write_text("\n".join(lines), encoding='utf-8')
-        self.logger.info(f"Captions generated from alignment: {captions_path}")
-=======
     def generate_captions_from_script(self, script: str, audio_duration: float) -> str:
         """Generate simple captions from script text with estimated timing"""
         captions_path = self.temp_dir / "captions.srt"
@@ -304,7 +229,6 @@ class BrainrotReelGenerator:
             f.write(srt_content)
         
         self.logger.info(f"Captions generated: {captions_path}")
->>>>>>> 28debcbe126f69a1e92c445cd251da2d57a706d3
         return str(captions_path)
     
     def _seconds_to_srt_time(self, seconds: float) -> str:
