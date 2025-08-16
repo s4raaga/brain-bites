@@ -1,0 +1,96 @@
+2025-08-16 14:02:11,918 - INFO - S3 client initialized
+2025-08-16 14:02:11,918 - INFO - Starting Brainrot Reel Generator...
+2025-08-16 14:02:11,919 - INFO - Script loaded from dialogue JSON: 749 characters
+2025-08-16 14:02:11,919 - INFO - Generating AI voice...
+2025-08-16 14:02:21,018 - INFO - Voice generated: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/temp/voice.mp3
+2025-08-16 14:02:21,074 - INFO - Generating captions from script...
+2025-08-16 14:02:21,075 - INFO - Captions generated: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/temp/captions.srt
+2025-08-16 14:02:21,075 - ERROR - ❌ ERROR: No background videos found in /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/inputs/backgrounds
+2025-08-16 14:02:21,076 - ERROR - Traceback (most recent call last):
+  File "/Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/main.py", line 412, in run
+    background_path = self.select_background_video()
+  File "/Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/main.py", line 236, in select_background_video
+    raise FileNotFoundError(f"No background videos found in {self.backgrounds_dir}")
+FileNotFoundError: No background videos found in /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/inputs/backgrounds
+
+2025-08-16 14:06:32,589 - INFO - S3 client initialized
+2025-08-16 14:06:32,589 - INFO - Starting Brainrot Reel Generator...
+2025-08-16 14:06:32,590 - INFO - Script loaded from dialogue JSON: 749 characters
+2025-08-16 14:06:32,590 - INFO - Generating AI voice...
+2025-08-16 14:06:41,792 - INFO - Voice generated: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/temp/voice.mp3
+2025-08-16 14:06:41,845 - INFO - Generating captions from script...
+2025-08-16 14:06:41,847 - INFO - Captions generated: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/temp/captions.srt
+2025-08-16 14:06:41,848 - INFO - Selected background video: kinetic_sand_1.mp4
+2025-08-16 14:06:41,848 - INFO - Creating final video...
+2025-08-16 14:06:42,048 - ERROR - ❌ ERROR: module 'PIL.Image' has no attribute 'ANTIALIAS'
+2025-08-16 14:06:42,052 - ERROR - Traceback (most recent call last):
+  File "/Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/main.py", line 415, in run
+    output_path = self.create_video(script, voice_path, captions_path, background_path, title, description)
+  File "/Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/main.py", line 295, in create_video
+    background_clip = background_clip.resize((target_width, target_height))
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/moviepy/video/fx/resize.py", line 152, in resize
+    newclip = clip.fl_image(fl)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/moviepy/video/VideoClip.py", line 490, in fl_image
+    return self.fl(lambda gf, t: image_func(gf(t)), apply_to)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/moviepy/Clip.py", line 136, in fl
+    newclip = self.set_make_frame(lambda t: fun(self.get_frame, t))
+  File "<decorator-gen-61>", line 2, in set_make_frame
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/moviepy/decorators.py", line 14, in outplace
+    f(newclip, *a, **k)
+    ~^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/moviepy/video/VideoClip.py", line 644, in set_make_frame
+    self.size = self.get_frame(0).shape[:2][::-1]
+                ~~~~~~~~~~~~~~^^^
+  File "<decorator-gen-11>", line 2, in get_frame
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/moviepy/decorators.py", line 89, in wrapper
+    return f(*new_a, **new_kw)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/moviepy/Clip.py", line 93, in get_frame
+    return self.make_frame(t)
+           ~~~~~~~~~~~~~~~^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/moviepy/Clip.py", line 136, in <lambda>
+    newclip = self.set_make_frame(lambda t: fun(self.get_frame, t))
+                                            ~~~^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/moviepy/video/VideoClip.py", line 490, in <lambda>
+    return self.fl(lambda gf, t: image_func(gf(t)), apply_to)
+                                 ~~~~~~~~~~^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/moviepy/video/fx/resize.py", line 150, in <lambda>
+    fl = lambda pic: resizer(pic.astype('uint8'), newsize)
+                     ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/moviepy/video/fx/resize.py", line 37, in resizer
+    resized_pil = pilim.resize(newsize[::-1], Image.ANTIALIAS)
+                                              ^^^^^^^^^^^^^^^
+AttributeError: module 'PIL.Image' has no attribute 'ANTIALIAS'
+
+2025-08-16 14:08:28,769 - INFO - S3 client initialized
+2025-08-16 14:08:28,770 - INFO - Starting Brainrot Reel Generator...
+2025-08-16 14:08:28,770 - INFO - Script loaded from dialogue JSON: 749 characters
+2025-08-16 14:08:28,770 - INFO - Generating AI voice...
+2025-08-16 14:08:38,195 - INFO - Voice generated: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/temp/voice.mp3
+2025-08-16 14:08:38,253 - INFO - Generating captions from script...
+2025-08-16 14:08:38,254 - INFO - Captions generated: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/temp/captions.srt
+2025-08-16 14:08:38,254 - INFO - Selected background video: subway_surfers_1.mp4
+2025-08-16 14:08:38,254 - INFO - Creating final video...
+2025-08-16 14:08:38,434 - ERROR - ❌ ERROR: 'SubRipTime' object has no attribute 'total_seconds'
+2025-08-16 14:08:38,436 - ERROR - Traceback (most recent call last):
+  File "/Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/main.py", line 420, in run
+    output_path = self.create_video(script, voice_path, captions_path, background_path, title, description)
+  File "/Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/main.py", line 311, in create_video
+    start_time = subtitle.start.total_seconds()
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SubRipTime' object has no attribute 'total_seconds'
+
+2025-08-16 14:16:52,931 - INFO - S3 client initialized
+2025-08-16 14:16:52,931 - INFO - Starting Brainrot Reel Generator...
+2025-08-16 14:16:52,932 - INFO - Script loaded from dialogue JSON: 749 characters
+2025-08-16 14:16:52,932 - INFO - Generating AI voice...
+2025-08-16 14:17:02,452 - INFO - Voice generated: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/temp/voice.mp3
+2025-08-16 14:17:02,531 - INFO - Generating captions from script...
+2025-08-16 14:17:02,532 - INFO - Captions generated: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/temp/captions.srt
+2025-08-16 14:17:02,532 - INFO - Selected background video: kinetic_sand_1.mp4
+2025-08-16 14:17:02,532 - INFO - Creating final video...
+2025-08-16 14:17:46,873 - INFO - Final video created: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/outputs/understanding-mathematical-limits-and-infinity_what-actually-happens-when-functions-approach-infinit.mp4
+2025-08-16 14:17:46,874 - INFO - Uploading understanding-mathematical-limits-and-infinity_what-actually-happens-when-functions-approach-infinit.mp4 to S3 bucket brain-bite-bucket...
+2025-08-16 14:17:47,858 - INFO - Video uploaded to S3: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/understanding-mathematical-limits-and-infinity_what-actually-happens-when-functions-approach-infinit.mp4
+2025-08-16 14:17:47,883 - INFO - Temporary files cleaned up
+2025-08-16 14:17:47,883 - INFO - ✅ SUCCESS! Video created: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/understanding-mathematical-limits-and-infinity_what-actually-happens-when-functions-approach-infinit.mp4

@@ -21,6 +21,11 @@ from dotenv import load_dotenv
 from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip, TextClip
 import pysrt
 
+# Fix PIL compatibility issue
+from PIL import Image
+if not hasattr(Image, 'ANTIALIAS'):
+    Image.ANTIALIAS = Image.LANCZOS
+
 
 class BrainrotReelGenerator:
     def __init__(self):
@@ -28,7 +33,7 @@ class BrainrotReelGenerator:
         self.inputs_dir = self.base_dir / "inputs"
         self.outputs_dir = self.base_dir / "outputs" 
         self.temp_dir = self.base_dir / "temp"
-        self.backgrounds_dir = self.inputs_dir / "backgrounds"
+        self.backgrounds_dir = self.inputs_dir / "assets" / "backgrounds"
         
         # Setup logging
         logging.basicConfig(
@@ -97,21 +102,45 @@ class BrainrotReelGenerator:
         
         return default_config
 
-    def read_script(self) -> str:
-        """Read the script from inputs/script.txt"""
+    def read_script(self) -> tuple[str, str, str]:
+        """Read the script from inputs/script.txt or dialogue JSON"""
         script_path = self.inputs_dir / "script.txt"
         
-        if not script_path.exists():
-            raise FileNotFoundError(f"Script file not found: {script_path}")
+        if script_path.exists():
+            with open(script_path, 'r', encoding='utf-8') as f:
+                script = f.read().strip()
+            
+            if not script:
+                raise ValueError("Script file is empty")
+            
+            self.logger.info(f"Script loaded: {len(script)} characters")
+            return script, None, None
         
-        with open(script_path, 'r', encoding='utf-8') as f:
-            script = f.read().strip()
+        # If no script.txt, look for dialogue JSON files
+        dialogues_dir = self.inputs_dir / "dialogues"
+        if dialogues_dir.exists():
+            json_files = list(dialogues_dir.glob("*.json"))
+            if json_files:
+                # Use the first JSON file found
+                dialogue_file = json_files[0]
+                with open(dialogue_file, 'r', encoding='utf-8') as f:
+                    dialogue_data = json.load(f)
+                
+                # Extract script from dialogue
+                dialogue_lines = dialogue_data.get('dialogue', [])
+                script_parts = []
+                for line in dialogue_lines:
+                    text = line.get('text', '')
+                    script_parts.append(text)
+                
+                script = ' '.join(script_parts)
+                title = dialogue_data.get('title', None)
+                description = dialogue_data.get('description', None)
+                
+                self.logger.info(f"Script loaded from dialogue JSON: {len(script)} characters")
+                return script, title, description
         
-        if not script:
-            raise ValueError("Script file is empty")
-        
-        self.logger.info(f"Script loaded: {len(script)} characters")
-        return script
+        raise FileNotFoundError("No script.txt or dialogue JSON files found")
 
     def generate_voice(self, text: str) -> str:
         """Generate AI voice using ElevenLabs API"""
@@ -181,6 +210,24 @@ class BrainrotReelGenerator:
         secs = int(seconds % 60)
         millisecs = int((seconds % 1) * 1000)
         return f"{hours:02d}:{minutes:02d}:{secs:02d},{millisecs:03d}"
+    
+    def _create_filename_from_title_description(self, title: str, description: str) -> str:
+        """Create a filename from title and description"""
+        import re
+        
+        # Combine title and description
+        combined = f"{title}_{description}"
+        
+        # Replace spaces and special characters with hyphens
+        filename = re.sub(r'[^\w\s-]', '', combined)  # Remove special chars except spaces and hyphens
+        filename = re.sub(r'\s+', '-', filename)      # Replace spaces with hyphens
+        filename = re.sub(r'-+', '-', filename)       # Replace multiple hyphens with single
+        filename = filename.strip('-')                # Remove leading/trailing hyphens
+        
+        # Limit length and convert to lowercase
+        filename = filename[:100].lower()
+        
+        return filename
 
     def select_background_video(self) -> str:
         """Select a random background video from inputs/backgrounds/"""
@@ -197,10 +244,17 @@ class BrainrotReelGenerator:
         self.logger.info(f"Selected background video: {selected_video.name}")
         return str(selected_video)
 
-    def create_video(self, script: str, voice_path: str, captions_path: str, background_path: str) -> str:
+    def create_video(self, script: str, voice_path: str, captions_path: str, background_path: str, title: str = None, description: str = None) -> str:
         """Create the final video with all components"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = self.outputs_dir / f"final_{timestamp}.mp4"
+        if title and description:
+            # Create filename from title and description
+            filename = self._create_filename_from_title_description(title, description)
+        else:
+            # Fallback to timestamp if no title/description
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"final_{timestamp}"
+        
+        output_path = self.outputs_dir / f"{filename}.mp4"
         
         self.logger.info("Creating final video...")
         
@@ -254,8 +308,8 @@ class BrainrotReelGenerator:
             subtitles = pysrt.open(captions_path)
             
             for subtitle in subtitles:
-                start_time = subtitle.start.total_seconds()
-                end_time = subtitle.end.total_seconds()
+                start_time = subtitle.start.hours * 3600 + subtitle.start.minutes * 60 + subtitle.start.seconds + subtitle.start.milliseconds / 1000
+                end_time = subtitle.end.hours * 3600 + subtitle.end.minutes * 60 + subtitle.end.seconds + subtitle.end.milliseconds / 1000
                 text = subtitle.text.replace('\n', ' ')
                 
                 # Create text clip
@@ -348,7 +402,7 @@ class BrainrotReelGenerator:
             self.logger.info("Starting Brainrot Reel Generator...")
             
             # Step 1: Read script
-            script = self.read_script()
+            script, title, description = self.read_script()
             
             # Step 2: Generate AI voice
             voice_path = self.generate_voice(script)
@@ -363,7 +417,7 @@ class BrainrotReelGenerator:
             background_path = self.select_background_video()
             
             # Step 5: Create final video
-            output_path = self.create_video(script, voice_path, captions_path, background_path)
+            output_path = self.create_video(script, voice_path, captions_path, background_path, title, description)
             
             # Step 6: Cleanup
             self.cleanup_temp_files()
@@ -389,7 +443,10 @@ class BrainrotReelGenerator:
             script = script_text.strip()
             self.logger.info("Starting Brainrot Reel Generator (external script)...")
             voice_path = self.generate_voice(script)
-            captions_path = self.generate_captions(voice_path)
+            audio_clip = AudioFileClip(voice_path)
+            audio_duration = audio_clip.duration
+            audio_clip.close()
+            captions_path = self.generate_captions_from_script(script, audio_duration)
             background_path = self.select_background_video()
             output_path = self.create_video(script, voice_path, captions_path, background_path)
             self.cleanup_temp_files()

@@ -1,4 +1,6 @@
 {
+  "title": "Java OOP Four Principles Explained",
+  "description": "Brainrot explanation of Java Object-Oriented Programming's four main principles with sigma energy",
   "dialogue": [
     {
       "character": "character1",
@@ -23,22 +25,6 @@
     {
       "character": "character2",
       "text": "This is absolutely bussin! So classes can inherit powers like some anime protagonist? And what's polymorphism - sounds like it's trying too hard to be different!"
-    },
-    {
-      "character": "character1",
-      "text": "Polymorphism means one method can have different behaviors depending on the object! Same name, different vibes. It's giving shape-shifter energy, totally not NPC behavior!"
-    },
-    {
-      "character": "character2",
-      "text": "My brain is literally exploding! And abstraction? Let me guess, it's about hiding complex stuff and keeping things simple for the users?"
-    },
-    {
-      "character": "character1",
-      "text": "EXACTLY! Abstraction is like showing only the sigma features while hiding all the cringe implementation details. It's the GOAT principle for clean code architecture!"
-    },
-    {
-      "character": "character2",
-      "text": "Java OOP is actually fire! These four principles are like the ultimate cheat codes for building scalable applications. I'm definitely not sleeping on Java anymore!"
     }
   ]
 }

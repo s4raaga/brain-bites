@@ -1,0 +1,14 @@
+{
+  "title": "Quick Test Video",
+  "description": "Short test to verify batch processing works with multiple files",
+  "dialogue": [
+    {
+      "character": "character1",
+      "text": "This is a quick test to make sure our batch generator can handle multiple dialogue files!"
+    },
+    {
+      "character": "character2", 
+      "text": "That's so cool! Each file should get a different background video automatically."
+    }
+  ]
+}
