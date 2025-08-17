@@ -173,3 +173,31 @@ video_making/
 ---
 
 **Ready to create viral brainrot content? Run the script and watch the magic happen! 🚀**
+
+## Library / Package Usage (New)
+
+You can now import the generator directly instead of invoking the batch script. Example:
+
+```python
+from pathlib import Path
+from video_making import BrainBitesVideoGenerator
+
+gen = BrainBitesVideoGenerator()
+output_path = gen.generate_from_file(Path('transcripts/my_script.json'))
+print('Video saved at', output_path)
+```
+
+The transcript JSON should contain: `title`, `description`, and a `dialogue` list with entries like:
+
+```json
+{
+  "title": "Integration Basics",
+  "description": "Grounded explainer referencing MATH101 lecture notes",
+  "dialogue": [
+    {"speaker": "Speaker A", "text": "Integrals accumulate infinitely small areas."},
+    {"speaker": "Speaker B", "text": "Think of slicing the area into strips."}
+  ]
+}
+```
+
+This same package API is used by the GUI uploader to convert generated scripts into videos.

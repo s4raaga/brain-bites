@@ -1,23 +1,12 @@
 #!/usr/bin/env python3
 """
-Anthropic ↔︎ MCP client for bb_blackboard_mcp.py (STDIO)
+Anthropic ↔︎ MCP client for scraping-based Blackboard MCP (Playwright)
 
-- Spawns your MCP server (local stdio)
-- Discovers its tools + input schemas
-- Presents them to Claude via Anthropic Messages API
-- Executes tool_use calls and returns tool_result blocks
-- Auto-fills base_url (hard‑coded to https://learn.uq.edu.au/)
+Tools expect (legacy) parameters like headless in some cases; base URL is hardcoded in the server.
 
 Usage:
-    set ANTHROPIC_API_KEY=... (Windows) / export ANTHROPIC_API_KEY=... (POSIX)
-    python anthropic_blackboard_agent.py --server ./bb_blackboard_mcp.py
-
-Optional flags:
-    --model claude-sonnet-4-20250514
-    --headless (default: false)  # passed when Claude asks to login/list/etc
-
-NOTE: The Blackboard base URL is now hardcoded to https://learn.uq.edu.au/ and the
-BLACKBOARD_BASE_URL environment variable is ignored.
+    export ANTHROPIC_API_KEY=...
+    python agent.py --server datacq/bb_mcp.py [--headless]
 """
 
 import os, sys, json, argparse, asyncio, time, contextlib
@@ -27,41 +16,19 @@ from anthropic import Anthropic, APIError
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
 
-SYSTEM_PROMPT = """You are an efficient Blackboard MCP agent that produces SHORT, grounded educational video script JSON files.
-
-Core Mission:
-1. Gather evidence (fresh PDFs) before writing ANY script (at least one successful read_pdf_text per topic).
-2. Derive concise, factual paraphrased dialogue—never invent.
-
-Multi‑Course Exploration Principle (VERY IMPORTANT):
-    - Always enumerate courses first (list_courses) and attempt to source topics from ACROSS the first 3–4 real courses (after any generic training placeholder).
-    - Do NOT generate multiple scripts from the same course until you have attempted (with downloads + read_pdf_text) to ground at least one topic in each of the other available courses.
-    - Rotate: after finishing a script for Course A, target Course B next, then Course C, etc. Only return to a prior course once each enumerated course with accessible PDFs has at least one grounded script (or you have explicitly confirmed via failed download/read attempts that a course lacks usable PDF content).
-
-Iterative Workflow (tight loop; keep reasoning terse):
-    a) list_courses -> collect first 4 real courses (store names/urls locally in reasoning state).
-    b) For the next course needing coverage: list_content -> pick ONE interesting, distinct topic (different from prior scripts & other courses when possible).
-    c) download needed PDF(s) (lecture/workbook style) -> read_pdf_text until ≥400 chars grounded text (skip quizzes/forums/unsupported types).
-    d) Immediately craft & save_json a script for that specific course topic.
-    e) Continue rotating to the next uncovered course; once each course covered (or exhausted), you may deepen coverage with new distinct topics, still avoiding redundancy.
-    f) Avoid stockpiling many PDFs first; keep evidence->script cycles short.
-
-Download Guidance:
-    - The download tool typically only succeeds with lecture or workbook style PDFs; skip quizzes, forums, external links, or obvious non-PDF content.
-    - Avoid duplicate downloads; reuse previously extracted text when possible (do not re-download the same PDF if you already read it).
-
-Formatting (reinforced in save_json tool description):
-    - JSON fields: title, description, dialogue.
-    - characters allowed: Speaker A, Speaker B (ONLY these two; alternate as needed, no other names or Narrator lines).
-    - Vary style across scripts: dialogue, mentor->learner, monologue (single speaker), anecdote—still only using Speaker A / Speaker B labels.
-
+SYSTEM_PROMPT = """You are an efficient Blackboard scraping MCP agent producing SHORT grounded video script JSON files.
+Workflow:
+    1. Call list_courses FIRST (never call login upfront). Use 'authenticated' flag in its response.
+       - Only if authenticated == false should you then call login, and afterwards retry list_courses.
+    2. Pick first 3–4 real courses (skip training/archived if obvious).
+    3. For each uncovered course: list_content(course_url) -> choose ONE promising PDF content page (lecture/workbook style; skip quizzes/discussions).
+    4. download(content_url) -> read_pdf_text(file_name) until aggregated extracted text for that course/topic ≥400 chars (download another PDF from same course if needed).
+    5. As soon as you have ≥400 chars for a distinct course/topic, save_json a script (title (course code); dialogue list with characters Speaker A / Speaker B only) then move to a different course (round-robin) before returning.
+    6. Rotate styles per script: dialog, mentor->learner, monologue, anecdote (cycle).
 Constraints:
-    - Do not call login unless clearly unauthenticated.
-    - Never save_json before at least one successful read_pdf_text for that topic.
-    - If evidence is thin after diligent attempts for a course, briefly note limitation (in natural language output only) but still output only grounded content; DO NOT fabricate.
-    - STRICT: Avoid generating two consecutive scripts from the same course while other enumerated courses remain uncovered.
-
-Keep responses compact. Minimize internal chatter. Only grounded facts. Always demonstrate multi-course coverage early.
+    - Do NOT call login unless a tool explicitly indicates unauthenticated (authenticated=false) or repeated 0 courses after list_courses.
+    - Never script without prior successful read_pdf_text evidence (≥400 chars) for that specific topic.
+    - No hallucinations; base content strictly on extracted PDF text. Keep reasoning terse.
 """
 
 def to_jsonable(obj: Any) -> Any:
@@ -140,8 +107,6 @@ async def run_scripted(
         schema = next((x for x in mcp_tools if x.name == name), None)
         if schema and getattr(schema, "inputSchema", None):
             props = (getattr(schema.inputSchema, "properties", None) or {})
-            if "base_url" in props and "base_url" not in tool_input:
-                tool_input = {**tool_input, "base_url": base_url.rstrip('/') + '/'}
             if "headless" in props and "headless" not in tool_input:
                 tool_input["headless"] = bool(headless)
         result = await session.call_tool(name, tool_input)
@@ -231,7 +196,7 @@ async def run_chat(args: argparse.Namespace) -> None:
     # Interactive mode preserved; uses default hardcoded base URL.
     session_prompts: List[str] = []  # built incrementally from stdin
     # We reuse run_scripted logic but keep streaming experience; so we replicate tool loop inline.
-    base_url = "https://learn.uq.edu.au/"  # legacy default
+    base_url = "https://learn.uq.edu.au/"
     client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
     if not os.environ.get("ANTHROPIC_API_KEY"):
         print("ERROR: Set ANTHROPIC_API_KEY", file=sys.stderr)
@@ -242,8 +207,6 @@ async def run_chat(args: argparse.Namespace) -> None:
         schema = next((x for x in mcp_tools if x.name == name), None)
         if schema and getattr(schema, "inputSchema", None):
             props = (getattr(schema.inputSchema, "properties", None) or {})
-            if "base_url" in props and "base_url" not in tool_input:
-                tool_input = {**tool_input, "base_url": base_url}
             if "headless" in props and "headless" not in tool_input:
                 tool_input["headless"] = bool(args.headless)
         result = await session.call_tool(name, tool_input)

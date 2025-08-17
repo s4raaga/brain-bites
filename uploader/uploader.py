@@ -1,16 +1,19 @@
-"""Simple GUI Uploader / Orchestrator
+"""Simple GUI Uploader / Orchestrator (Scraping Edition)
 
 Features:
- - Login button: reuses Blackboard MCP login tool (cached session via Playwright persistent context)
- - Generate Scripts button: uses Anthropic agent (datacq.agent) to invoke MCP tools and save JSON video scripts
- - Build Video button: turns a selected saved JSON script (under transcripts/) into a short video using BrainrotReelGenerator
+ - Login button: launches scraping MCP login tool (bb_mcp.tool_login) which opens a browser (headless configurable inside agent) so you can authenticate; session cookies persisted.
+ - Generate Scripts button: uses Anthropic agent (datacq.agent) to drive scraping tools and save grounded JSON scripts.
+ - Build Video button: converts saved JSON scripts (transcripts/) into short videos.
 
-Prerequisites (expected already in repo environment):
+Prerequisites:
  - Environment vars: ANTHROPIC_API_KEY, ELEVENLABS_API_KEY
- - Python deps installed for: playwright (and chromium installed), mcp, anthropic, moviepy, requests, bs4, dotenv, pysrt
- - Background videos present in video_making/inputs/backgrounds/
+ - Python deps: mcp, anthropic, playwright, bs4, pypdf, moviepy, dotenv, pysrt
+ - Install browser: run: playwright install chromium
+ - Background videos in video_making/inputs/backgrounds/
 
-This file purposefully keeps logic lightweight and threads blocking work so the Tkinter UI stays responsive.
+Notes:
+ - Blackboard REST OAuth flow deprecated for this workflow; we rely on Playwright-controlled user login.
+ - The login tool returns log lines summarizing actions and ensures persistent profile storage for subsequent tool calls.
 """
 
 from __future__ import annotations
@@ -35,9 +38,10 @@ if str(PROJECT_ROOT) not in sys.path:
 
 # --- Internal imports from existing project ---
 try:
-	from datacq.bb_mcp import tool_login  # direct tool call (threaded inside)
-except Exception:  # noqa: BLE001
+	from datacq.bb_mcp import tool_login  # Scraping login tool
+except Exception as _import_exc:  # noqa: BLE001
 	tool_login = None  # type: ignore
+	TOOL_LOGIN_IMPORT_ERROR = _import_exc  # type: ignore
 
 try:
 	from datacq import agent as bb_agent
@@ -89,7 +93,6 @@ class OrchestratorGUI:
 		self.status_var = tk.StringVar(value="Idle")
 		self.model_var = tk.StringVar(value="claude-3-5-haiku-latest")
 		self.max_scripts_var = tk.IntVar(value=1)
-		self.headless_var = tk.BooleanVar(value=True)  # default run headless
 
 		self._worker_queue: "queue.Queue[str]" = queue.Queue()
 		self._current_worker: Optional[threading.Thread] = None
@@ -109,8 +112,6 @@ class OrchestratorGUI:
 		ttk.Entry(top, textvariable=self.model_var, width=24).grid(row=0, column=1, padx=4, sticky="w")
 		ttk.Label(top, text="Target Scripts:").grid(row=0, column=2, sticky="e")
 		ttk.Spinbox(top, from_=1, to=10, textvariable=self.max_scripts_var, width=5).grid(row=0, column=3, padx=4, sticky="w")
-		headless_cb = ttk.Checkbutton(top, text="Headless browser", variable=self.headless_var)
-		headless_cb.grid(row=0, column=4, padx=8, sticky="w")
 
 		btn_frame = ttk.Frame(self.root)
 		btn_frame.pack(fill=tk.X, padx=8, pady=4)
@@ -121,10 +122,10 @@ class OrchestratorGUI:
 		self.generate_btn = ttk.Button(btn_frame, text="Generate Scripts", command=self.on_generate, state=tk.NORMAL)
 		self.generate_btn.pack(side=tk.LEFT, padx=4)
 
-		self.refresh_btn = ttk.Button(btn_frame, text="Refresh Script List", command=self.load_existing_scripts)
+		self.refresh_btn = ttk.Button(btn_frame, text="Reload Scripts", command=self.load_existing_scripts)
 		self.refresh_btn.pack(side=tk.LEFT, padx=4)
 
-		self.make_video_btn = ttk.Button(btn_frame, text="Build Video from Selected", command=self.on_make_video, state=tk.DISABLED)
+		self.make_video_btn = ttk.Button(btn_frame, text="Build Video from Scripts", command=self.on_make_video, state=tk.DISABLED)
 		self.make_video_btn.pack(side=tk.LEFT, padx=12)
 
 		ttk.Label(btn_frame, textvariable=self.status_var).pack(side=tk.RIGHT, padx=4)
@@ -132,15 +133,14 @@ class OrchestratorGUI:
 		middle = ttk.Panedwindow(self.root, orient=tk.HORIZONTAL)
 		middle.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
 
-		# Script list
+		# Left panel (script info only now; selection removed)
 		left_frame = ttk.Frame(middle)
 		middle.add(left_frame, weight=1)
-		ttk.Label(left_frame, text="Available JSON Scripts (transcripts/)").pack(anchor="w")
-		self.script_list = tk.Listbox(left_frame, height=12)
-		self.script_list.pack(fill=tk.BOTH, expand=True)
-		self.script_list.bind("<<ListboxSelect>>", lambda e: self._update_video_button_state())
+		ttk.Label(left_frame, text="Generated Scripts (auto-managed)").pack(anchor="w")
+		self.script_info_lbl = ttk.Label(left_frame, text="(None yet)")
+		self.script_info_lbl.pack(anchor="w", pady=(4,0))
 
-		# Log / Output console
+		# Right panel (logs unchanged)
 		right_frame = ttk.Frame(middle)
 		middle.add(right_frame, weight=2)
 		ttk.Label(right_frame, text="Logs / Output").pack(anchor="w")
@@ -151,7 +151,6 @@ class OrchestratorGUI:
 		# Stretch last row/column to avoid geometry issues
 		top.grid_columnconfigure(1, weight=1)
 		top.grid_columnconfigure(3, weight=0)
-		top.grid_columnconfigure(4, weight=0)
 
 		self.load_existing_scripts()
 
@@ -197,13 +196,13 @@ class OrchestratorGUI:
 		self.root.after(250, self._poll_queue)
 
 	def _update_video_button_state(self):
-		sel = self.script_list.curselection()
-		self.make_video_btn.configure(state=(tk.NORMAL if sel else tk.DISABLED))
+		# Enable if any scripts exist
+		self.make_video_btn.configure(state=(tk.NORMAL if self.generated_scripts else tk.DISABLED))
 
 	def load_existing_scripts(self):
 		TRANSCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
-		self.script_list.delete(0, tk.END)
 		self.generated_scripts.clear()
+		count = 0
 		for path in sorted(TRANSCRIPTS_DIR.glob("*.json")):
 			obj = safe_read_json(path)
 			if not isinstance(obj, dict):
@@ -219,30 +218,79 @@ class OrchestratorGUI:
 				preview = ""
 			gs = GeneratedScript(path=path, title=title, description=desc, dialogue_preview=preview)
 			self.generated_scripts.append(gs)
-			self.script_list.insert(tk.END, f"{title} | {path.name}")
+			count += 1
+		self.script_info_lbl.configure(text=f"{count} script(s) detected")
 		self.log(f"Loaded {len(self.generated_scripts)} scripts.")
 		self._update_video_button_state()
 
 	# ---------------- Actions ----------------
 	def on_login(self):
 		if tool_login is None:
-			messagebox.showerror("Unavailable", "Could not import bb_mcp.tool_login")
+			detail = globals().get("TOOL_LOGIN_IMPORT_ERROR")
+			msg = "Could not import bb_mcp.tool_login"
+			if detail:
+				msg += f"\n\nRoot cause: {detail.__class__.__name__}: {detail}"
+			msg += "\n\nInstall required deps (mcp, playwright, bs4, pypdf, anthropic). After installing run: playwright install chromium"
+			messagebox.showerror("Unavailable", msg)
 			return
 		self.set_status("Logging in…")
 		self.login_btn.configure(state=tk.DISABLED)
 		self.generate_btn.configure(state=tk.DISABLED)
 		def do_login():
-			mode = "headless" if self.headless_var.get() else "visible"
-			self.log(f"Starting login flow ({mode})…")
-			resp = tool_login()  # returns dict
-			self.log("Login complete. Logs:")
-			for line in resp.get("logs", []):
-				self.log(f"  {line}")
+			self.log("Starting scraping login flow…")
+			resp = tool_login()
+			logs = resp.get("logs") if isinstance(resp, dict) else None
+			if logs:
+				for line in logs:
+					self.log(f"  {line}")
 			return "login done"
 		self._run_in_thread(do_login)
 
 	def on_make_video(self):
-		pass # Placeholder for video generation logic
+		# Batch-generate videos for all detected scripts (sequentially, threaded)
+		if not self.generated_scripts:
+			messagebox.showinfo("No Scripts", "No transcript JSON scripts are available.")
+			return
+		try:
+			from video_making import BrainBitesVideoGenerator  # type: ignore
+		except Exception as e:  # noqa: BLE001
+			messagebox.showerror("Import Error", f"Could not import generator: {e}")
+			return
+
+		def do_build():
+			self.set_status("Rendering videos…")
+			self.log("Initializing video generator…")
+			try:
+				gen = BrainBitesVideoGenerator()
+			except Exception as e:  # noqa: BLE001
+				self.log(f"Failed to init generator: {e}")
+				return "generator init failed"
+			count = 0
+			deleted = 0
+			for script in list(self.generated_scripts):  # iterate over copy
+				self.log(f"Building video for: {script.path.name}")
+				try:
+					meta = gen.generate_from_file(script.path, return_meta=True)
+					if isinstance(meta, dict):
+						out_path = meta.get("uploaded_url") or meta.get("local_path")
+					else:
+						out_path = meta
+					self.log(f"  ✔ Output: {out_path}")
+					count += 1
+					# Delete script file after success
+					try:
+						script.path.unlink()
+						deleted += 1
+						self.log(f"  🗑 Deleted script {script.path.name}")
+					except Exception as del_e:  # noqa: BLE001
+						self.log(f"  ⚠ Could not delete script: {del_e}")
+				except Exception as e:  # noqa: BLE001
+					self.log(f"  ✖ Failed: {e}")
+			# Refresh list after deletions
+			self.load_existing_scripts()
+			return f"built {count} video(s), deleted {deleted} script(s)"
+
+		self._run_in_thread(do_build)
 
 	def on_generate(self):
 		if bb_agent is None:
@@ -280,19 +328,16 @@ Generate EXACTLY {max_scripts} grounded script JSON file(s) about: {topic}.
 Follow the tool-described evidence workflow (collect PDFs & read_pdf_text first for distinct topics across first 4 real courses). Only after adequate evidence, create scripts. For EACH script pick ONE format:
   - Monologue: only speaker "Speaker A" used in every line.
   - Two-speaker: only speakers "Speaker A" and "Speaker B" (no others). Keep a balanced exchange.
-Never introduce any other speaker names. Use only these exact labels. Each script covers a different grounded micro-topic. If truly impossible to reach {max_scripts}, save all valid ones then state limitation briefly.
-""".strip()
+Never introduce any other speaker names. Use only these exact labels. Each script covers a different grounded micro-topic. If truly impossible to reach {max_scripts}, save all valid ones then state limitation briefly. Hook style directive: In some scripts (not all), begin with ONE very short, absurd hook line). Immediately (next 1-2 lines) pivot to the real grounded topic and clarify the hook as a comedic language.""".strip()
 
 		def do_generate():
-			mode = "headless" if self.headless_var.get() else "visible"
-			self.log(f"Running agent to generate script JSON ({mode})…")
+			self.log("Running agent to generate script JSON…")
 			finals = bb_agent.run_scripted_sync(
 				prompts=[prompt],
 				server=SERVER_PATH,
 				model=model,
-				headless=self.headless_var.get(),
 				verbose=False,
-				tool_logger=lambda name, preview: self.log(f"TOOL {name}: " + preview[:200].replace("\n", " "))
+				tool_logger=lambda name, preview: self.log(f"TOOL {name}: " + preview[:200].replace('\n', ' '))
 			)
 			self.log("Agent natural language reply:")
 			for ln in finals[0].splitlines():
@@ -313,7 +358,6 @@ def main():  # pragma: no cover - interactive
 	root = tk.Tk()
 	OrchestratorGUI(root)
 	root.mainloop()
-
 
 if __name__ == "__main__":  # pragma: no cover
 	main()

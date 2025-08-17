@@ -3,3 +3,5 @@ profile
 transcripts
 
 __pycache__
+
+*.env

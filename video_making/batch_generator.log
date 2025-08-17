@@ -1,111 +1,104 @@
-2025-08-16 14:34:54,754 - INFO - 🔗 S3 client initialized
-2025-08-16 14:34:54,754 - INFO - 🚀 Starting Batch Video Generator...
-2025-08-16 14:34:54,754 - INFO - 📂 Found 1 dialogue files and 4 background videos
-2025-08-16 14:34:54,754 - INFO - 📹 Processing integrals_area.json with background minecraft_1.mp4
-2025-08-16 14:34:54,755 - INFO - 🎬 Creating video: Integration Sigma Energy
-2025-08-16 14:34:54,755 - INFO -   📝 Loaded 6 dialogue lines
-2025-08-16 14:34:54,755 - INFO -   Generating Alex voice: 'Yo, this is gonna be totally skibidi: integration ...'
-2025-08-16 14:34:57,064 - INFO -     Line 1: Alex - 26 words, 10.1s
-2025-08-16 14:34:57,064 - INFO -   Generating Sam voice: 'Bruh, that's cap! How do you even find area under ...'
-2025-08-16 14:34:58,722 - INFO -     Line 2: Sam - 21 words, 7.1s
-2025-08-16 14:34:58,723 - INFO -   Generating Alex voice: 'Listen fam, imagine yeeting the area into infinite...'
-2025-08-16 14:35:01,004 - INFO -     Line 3: Alex - 26 words, 10.6s
-2025-08-16 14:35:01,004 - INFO -   Generating Sam voice: 'That's straight up sus! How can you add infinite r...'
-2025-08-16 14:35:02,785 - INFO -     Line 4: Sam - 20 words, 7.4s
-2025-08-16 14:35:02,785 - INFO -   Generating Alex voice: 'Nah bestie, that's the alpha move of calculus! We ...'
-2025-08-16 14:35:04,733 - INFO -     Line 5: Alex - 25 words, 8.5s
-2025-08-16 14:35:04,734 - INFO -   Generating Sam voice: 'This is absolutely fire! So integration can find a...'
-2025-08-16 14:35:06,971 - INFO -     Line 6: Sam - 26 words, 11.2s
-2025-08-16 14:35:06,972 - INFO -   🎵 Total duration: 56.4 seconds
-2025-08-16 14:35:15,667 - INFO -   💾 Creating video: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/outputs/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
-2025-08-16 14:36:24,013 - INFO -   ✅ Video created: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/outputs/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
-2025-08-16 14:36:24,014 - INFO -   📤 Uploading integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4 to S3 bucket brain-bite-bucket...
-2025-08-16 14:36:25,630 - INFO -   ✅ Upload successful: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
-2025-08-16 14:36:25,630 - INFO -   🌐 Video available at: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
-2025-08-16 14:36:25,632 - INFO - 🧹 Temporary files cleaned up
-2025-08-16 14:36:25,632 - INFO - ✅ Batch processing complete! Created 1 videos
-2025-08-16 14:36:25,632 - INFO -    📽️  https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
-2025-08-16 14:38:16,807 - INFO - 🔗 S3 client initialized
-2025-08-16 14:38:16,807 - INFO - 🚀 Starting Batch Video Generator...
-2025-08-16 14:38:16,807 - INFO - 📂 Found 4 dialogue files and 4 background videos
-2025-08-16 14:38:16,807 - INFO - 📹 Processing brain_processing.json with background minecraft_1.mp4
-2025-08-16 14:38:16,808 - INFO - 🎬 Creating video: How Your Brain Processes Visual Information
-2025-08-16 14:38:16,808 - INFO -   📝 Loaded 4 dialogue lines
-2025-08-16 14:38:16,808 - INFO -   Generating Alex voice: 'Did you know that the human brain processes visual...'
-2025-08-16 14:38:18,513 - INFO -     Line 1: Alex - 16 words, 6.3s
-2025-08-16 14:38:18,514 - INFO -   Generating Sam voice: 'No way! That's incredible! So that's why videos ar...'
-2025-08-16 14:38:20,017 - INFO -     Line 2: Sam - 15 words, 5.7s
-2025-08-16 14:38:20,018 - INFO -   Generating Alex voice: 'Exactly! That's why platforms like TikTok and YouT...'
-2025-08-16 14:38:22,047 - INFO -     Line 3: Alex - 21 words, 9.4s
-2025-08-16 14:38:22,048 - INFO -   Generating Sam voice: 'Mind blown! So when I'm scrolling through social m...'
-2025-08-16 14:38:23,901 - INFO -     Line 4: Sam - 21 words, 7.0s
-2025-08-16 14:38:23,902 - INFO -   🎵 Total duration: 29.2 seconds
-2025-08-16 14:38:28,120 - INFO -   💾 Creating video: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/outputs/how-your-brain-processes-visual-information_mind-blowing-facts-about-how-the-human-brain-processes-v.mp4
-2025-08-16 14:39:06,383 - INFO -   ✅ Video created: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/outputs/how-your-brain-processes-visual-information_mind-blowing-facts-about-how-the-human-brain-processes-v.mp4
-2025-08-16 14:39:06,384 - INFO -   📤 Uploading how-your-brain-processes-visual-information_mind-blowing-facts-about-how-the-human-brain-processes-v.mp4 to S3 bucket brain-bite-bucket...
-2025-08-16 14:39:07,483 - INFO -   ✅ Upload successful: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/how-your-brain-processes-visual-information_mind-blowing-facts-about-how-the-human-brain-processes-v.mp4
-2025-08-16 14:39:07,483 - INFO -   🌐 Video available at: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/how-your-brain-processes-visual-information_mind-blowing-facts-about-how-the-human-brain-processes-v.mp4
-2025-08-16 14:39:07,485 - INFO - 🧹 Temporary files cleaned up
-2025-08-16 14:39:07,485 - INFO - 📹 Processing java_oop_brainrot.json with background subway_surfers_1.mp4
-2025-08-16 14:39:07,486 - INFO - 🎬 Creating video: Java OOP Four Principles Explained
-2025-08-16 14:39:07,486 - INFO -   📝 Loaded 6 dialogue lines
-2025-08-16 14:39:07,486 - INFO -   Generating Alex voice: 'Yo bestie, Java OOP is absolutely sending me! Ther...'
-2025-08-16 14:39:09,650 - INFO -     Line 1: Alex - 22 words, 8.9s
-2025-08-16 14:39:09,650 - INFO -   Generating Sam voice: 'Bruh, that sounds like Ohio nonsense! What's all t...'
-2025-08-16 14:39:11,396 - INFO -     Line 2: Sam - 21 words, 6.8s
-2025-08-16 14:39:11,396 - INFO -   Generating Alex voice: 'Nah fam, Encapsulation is like keeping your variab...'
-2025-08-16 14:39:13,696 - INFO -     Line 3: Alex - 29 words, 10.4s
-2025-08-16 14:39:13,696 - INFO -   Generating Sam voice: 'That's actually lowkey genius! So it's like having...'
-2025-08-16 14:39:15,540 - INFO -     Line 4: Sam - 22 words, 7.8s
-2025-08-16 14:39:15,540 - INFO -   Generating Alex voice: 'Inheritance is when child classes yeet all the pro...'
-2025-08-16 14:39:17,888 - INFO -     Line 5: Alex - 28 words, 10.7s
-2025-08-16 14:39:17,889 - INFO -   Generating Sam voice: 'This is absolutely bussin! So classes can inherit ...'
-2025-08-16 14:39:20,026 - INFO -     Line 6: Sam - 26 words, 9.3s
-2025-08-16 14:39:20,027 - INFO -   🎵 Total duration: 55.5 seconds
-2025-08-16 14:39:28,605 - INFO -   💾 Creating video: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/outputs/java-oop-four-principles-explained_brainrot-explanation-of-java-object-oriented-programmings-four-ma.mp4
-2025-08-16 14:40:58,345 - INFO -   ✅ Video created: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/outputs/java-oop-four-principles-explained_brainrot-explanation-of-java-object-oriented-programmings-four-ma.mp4
-2025-08-16 14:40:58,347 - INFO -   📤 Uploading java-oop-four-principles-explained_brainrot-explanation-of-java-object-oriented-programmings-four-ma.mp4 to S3 bucket brain-bite-bucket...
-2025-08-16 14:41:00,153 - INFO -   ✅ Upload successful: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/java-oop-four-principles-explained_brainrot-explanation-of-java-object-oriented-programmings-four-ma.mp4
-2025-08-16 14:41:00,153 - INFO -   🌐 Video available at: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/java-oop-four-principles-explained_brainrot-explanation-of-java-object-oriented-programmings-four-ma.mp4
-2025-08-16 14:41:00,155 - INFO - 🧹 Temporary files cleaned up
-2025-08-16 14:41:00,155 - INFO - 📹 Processing integrals_area.json with background minecraft_2.mp4
-2025-08-16 14:41:00,156 - INFO - 🎬 Creating video: Integration Sigma Energy
-2025-08-16 14:41:00,156 - INFO -   📝 Loaded 6 dialogue lines
-2025-08-16 14:41:00,156 - INFO -   Generating Alex voice: 'Yo, this is gonna be totally skibidi: integration ...'
-2025-08-16 14:41:02,598 - INFO -     Line 1: Alex - 26 words, 9.9s
-2025-08-16 14:41:02,598 - INFO -   Generating Sam voice: 'Bruh, that's cap! How do you even find area under ...'
-2025-08-16 14:41:04,372 - INFO -     Line 2: Sam - 21 words, 7.3s
-2025-08-16 14:41:04,372 - INFO -   Generating Alex voice: 'Listen fam, imagine yeeting the area into infinite...'
-2025-08-16 14:41:06,721 - INFO -     Line 3: Alex - 26 words, 11.3s
-2025-08-16 14:41:06,721 - INFO -   Generating Sam voice: 'That's straight up sus! How can you add infinite r...'
-2025-08-16 14:41:08,485 - INFO -     Line 4: Sam - 20 words, 7.8s
-2025-08-16 14:41:08,486 - INFO -   Generating Alex voice: 'Nah bestie, that's the alpha move of calculus! We ...'
-2025-08-16 14:41:10,418 - INFO -     Line 5: Alex - 25 words, 8.6s
-2025-08-16 14:41:10,418 - INFO -   Generating Sam voice: 'This is absolutely fire! So integration can find a...'
-2025-08-16 14:41:13,199 - INFO -     Line 6: Sam - 26 words, 10.8s
-2025-08-16 14:41:13,200 - INFO -   🎵 Total duration: 57.2 seconds
-2025-08-16 14:41:21,769 - INFO -   💾 Creating video: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/outputs/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
-2025-08-16 14:42:56,455 - INFO -   ✅ Video created: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/outputs/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
-2025-08-16 14:42:56,457 - INFO -   📤 Uploading integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4 to S3 bucket brain-bite-bucket...
-2025-08-16 14:42:58,254 - INFO -   ✅ Upload successful: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
-2025-08-16 14:42:58,254 - INFO -   🌐 Video available at: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
-2025-08-16 14:42:58,255 - INFO - 🧹 Temporary files cleaned up
-2025-08-16 14:42:58,255 - INFO - 📹 Processing quick_test.json with background kinetic_sand_1.mp4
-2025-08-16 14:42:58,256 - INFO - 🎬 Creating video: Quick Test Video
-2025-08-16 14:42:58,256 - INFO -   📝 Loaded 2 dialogue lines
-2025-08-16 14:42:58,256 - INFO -   Generating Alex voice: 'This is a quick test to make sure our batch genera...'
-2025-08-16 14:42:59,635 - INFO -     Line 1: Alex - 16 words, 4.5s
-2025-08-16 14:42:59,635 - INFO -   Generating Sam voice: 'That's so cool! Each file should get a different b...'
-2025-08-16 14:43:01,095 - INFO -     Line 2: Sam - 12 words, 4.3s
-2025-08-16 14:43:01,096 - INFO -   🎵 Total duration: 9.1 seconds
-2025-08-16 14:43:02,943 - INFO -   💾 Creating video: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/outputs/quick-test-video_short-test-to-verify-batch-processing-works-with-multiple-files.mp4
-2025-08-16 14:43:14,679 - INFO -   ✅ Video created: /Users/danieldsouza/Downloads/brain bite/brain-bites/video_making/outputs/quick-test-video_short-test-to-verify-batch-processing-works-with-multiple-files.mp4
-2025-08-16 14:43:14,681 - INFO -   📤 Uploading quick-test-video_short-test-to-verify-batch-processing-works-with-multiple-files.mp4 to S3 bucket brain-bite-bucket...
-2025-08-16 14:43:15,259 - INFO -   ✅ Upload successful: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/quick-test-video_short-test-to-verify-batch-processing-works-with-multiple-files.mp4
-2025-08-16 14:43:15,259 - INFO -   🌐 Video available at: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/quick-test-video_short-test-to-verify-batch-processing-works-with-multiple-files.mp4
-2025-08-16 14:43:15,259 - INFO - 🧹 Temporary files cleaned up
-2025-08-16 14:43:15,260 - INFO - ✅ Batch processing complete! Created 4 videos
-2025-08-16 14:43:15,260 - INFO -    📽️  https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/how-your-brain-processes-visual-information_mind-blowing-facts-about-how-the-human-brain-processes-v.mp4
-2025-08-16 14:43:15,260 - INFO -    📽️  https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/java-oop-four-principles-explained_brainrot-explanation-of-java-object-oriented-programmings-four-ma.mp4
-2025-08-16 14:43:15,260 - INFO -    📽️  https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
-2025-08-16 14:43:15,260 - INFO -    📽️  https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/quick-test-video_short-test-to-verify-batch-processing-works-with-multiple-files.mp4
+2025-08-17 09:19:20,795 - INFO - 🔗 S3 client initialized
+2025-08-17 09:19:20,795 - INFO - 🚀 Starting Batch Video Generator...
+2025-08-17 09:19:20,796 - INFO - 📂 Found 4 dialogue files and 4 background videos
+2025-08-17 09:19:20,797 - INFO - 📹 Processing integrals_area.json with background subway_surfers_1.mp4
+2025-08-17 09:19:20,797 - INFO - 🎬 Creating video: Integration Sigma Energy
+2025-08-17 09:19:20,797 - INFO -   📝 Loaded 6 dialogue lines
+2025-08-17 09:19:20,797 - INFO -   Generating Alex voice: 'Yo, this is gonna be totally skibidi: integration ...'
+2025-08-17 09:19:23,316 - INFO -     Line 1: Alex - 26 words, 10.7s
+2025-08-17 09:19:23,316 - INFO -   Generating Sam voice: 'Bruh, that's cap! How do you even find area under ...'
+2025-08-17 09:19:25,356 - INFO -     Line 2: Sam - 21 words, 7.2s
+2025-08-17 09:19:25,356 - INFO -   Generating Alex voice: 'Listen fam, imagine yeeting the area into infinite...'
+2025-08-17 09:19:28,183 - INFO -     Line 3: Alex - 26 words, 13.4s
+2025-08-17 09:19:28,183 - INFO -   Generating Sam voice: 'That's straight up sus! How can you add infinite r...'
+2025-08-17 09:19:30,630 - INFO -     Line 4: Sam - 20 words, 7.7s
+2025-08-17 09:19:30,630 - INFO -   Generating Alex voice: 'Nah bestie, that's the alpha move of calculus! We ...'
+2025-08-17 09:19:32,967 - INFO -     Line 5: Alex - 25 words, 7.9s
+2025-08-17 09:19:32,967 - INFO -   Generating Sam voice: 'This is absolutely fire! So integration can find a...'
+2025-08-17 09:19:35,836 - INFO -     Line 6: Sam - 26 words, 12.0s
+2025-08-17 09:19:35,836 - INFO -   🎵 Total duration: 60.4 seconds
+2025-08-17 09:19:48,920 - INFO -   💾 Creating video: /home/nikita/brain-bites/video_making/outputs/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
+2025-08-17 09:23:23,539 - INFO - 🔗 S3 client initialized
+2025-08-17 09:23:23,539 - INFO - 🚀 Starting Batch Video Generator...
+2025-08-17 09:23:23,540 - INFO - 📂 Found 4 dialogue files and 4 background videos
+2025-08-17 09:23:23,540 - INFO - 📹 Processing integrals_area.json with background subway_surfers_1.mp4
+2025-08-17 09:23:23,541 - INFO - 🎬 Creating video: Integration Sigma Energy
+2025-08-17 09:23:23,541 - INFO -   📝 Loaded 6 dialogue lines
+2025-08-17 09:23:23,541 - INFO -   Generating Alex voice: 'Yo, this is gonna be totally skibidi: integration ...'
+2025-08-17 09:23:26,058 - INFO -     Line 1: Alex - 26 words, 10.5s
+2025-08-17 09:23:26,059 - INFO -   Generating Sam voice: 'Bruh, that's cap! How do you even find area under ...'
+2025-08-17 09:23:28,295 - INFO -     Line 2: Sam - 21 words, 7.8s
+2025-08-17 09:23:28,296 - INFO -   Generating Alex voice: 'Listen fam, imagine yeeting the area into infinite...'
+2025-08-17 09:23:30,829 - INFO -     Line 3: Alex - 26 words, 11.6s
+2025-08-17 09:23:30,829 - INFO -   Generating Sam voice: 'That's straight up sus! How can you add infinite r...'
+2025-08-17 09:23:33,022 - INFO -     Line 4: Sam - 20 words, 7.8s
+2025-08-17 09:23:33,024 - INFO -   Generating Alex voice: 'Nah bestie, that's the alpha move of calculus! We ...'
+2025-08-17 09:23:35,193 - INFO -     Line 5: Alex - 25 words, 8.0s
+2025-08-17 09:23:35,193 - INFO -   Generating Sam voice: 'This is absolutely fire! So integration can find a...'
+2025-08-17 09:23:37,858 - INFO -     Line 6: Sam - 26 words, 11.7s
+2025-08-17 09:23:37,859 - INFO -   🎵 Total duration: 58.9 seconds
+2025-08-17 09:23:47,198 - INFO -   💾 Creating video: /home/nikita/brain-bites/video_making/outputs/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
+2025-08-17 09:25:55,531 - INFO -   ✅ Video created: /home/nikita/brain-bites/video_making/outputs/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
+2025-08-17 09:25:55,531 - INFO -   📤 Uploading integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4 to S3 bucket brain-bite-bucket...
+2025-08-17 09:25:56,206 - INFO -   ✅ Upload successful: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
+2025-08-17 09:25:56,206 - INFO -   🌐 Video available at: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
+2025-08-17 09:25:56,207 - INFO - 🧹 Temporary files cleaned up
+2025-08-17 09:25:56,207 - INFO - 📹 Processing brain_processing.json with background minecraft_2.mp4
+2025-08-17 09:25:56,208 - INFO - 🎬 Creating video: How Your Brain Processes Visual Information
+2025-08-17 09:25:56,208 - INFO -   📝 Loaded 4 dialogue lines
+2025-08-17 09:25:56,208 - INFO -   Generating Alex voice: 'Did you know that the human brain processes visual...'
+2025-08-17 09:25:57,947 - INFO -     Line 1: Alex - 16 words, 5.8s
+2025-08-17 09:25:57,947 - INFO -   Generating Sam voice: 'No way! That's incredible! So that's why videos ar...'
+2025-08-17 09:25:59,608 - INFO -     Line 2: Sam - 15 words, 5.8s
+2025-08-17 09:25:59,608 - INFO -   Generating Alex voice: 'Exactly! That's why platforms like TikTok and YouT...'
+2025-08-17 09:26:01,496 - INFO -     Line 3: Alex - 21 words, 7.4s
+2025-08-17 09:26:01,496 - INFO -   Generating Sam voice: 'Mind blown! So when I'm scrolling through social m...'
+2025-08-17 09:26:03,569 - INFO -     Line 4: Sam - 21 words, 7.4s
+2025-08-17 09:26:03,569 - INFO -   🎵 Total duration: 27.2 seconds
+2025-08-17 09:26:09,793 - INFO -   💾 Creating video: /home/nikita/brain-bites/video_making/outputs/how-your-brain-processes-visual-information_mind-blowing-facts-about-how-the-human-brain-processes-v.mp4
+2025-08-17 09:26:51,676 - INFO -   ✅ Video created: /home/nikita/brain-bites/video_making/outputs/how-your-brain-processes-visual-information_mind-blowing-facts-about-how-the-human-brain-processes-v.mp4
+2025-08-17 09:26:51,676 - INFO -   📤 Uploading how-your-brain-processes-visual-information_mind-blowing-facts-about-how-the-human-brain-processes-v.mp4 to S3 bucket brain-bite-bucket...
+2025-08-17 09:26:53,874 - INFO -   ✅ Upload successful: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/how-your-brain-processes-visual-information_mind-blowing-facts-about-how-the-human-brain-processes-v.mp4
+2025-08-17 09:26:53,874 - INFO -   🌐 Video available at: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/how-your-brain-processes-visual-information_mind-blowing-facts-about-how-the-human-brain-processes-v.mp4
+2025-08-17 09:26:53,874 - INFO - 🧹 Temporary files cleaned up
+2025-08-17 09:26:53,874 - INFO - 📹 Processing quick_test.json with background minecraft_1.mp4
+2025-08-17 09:26:53,875 - INFO - 🎬 Creating video: Quick Test Video
+2025-08-17 09:26:53,875 - INFO -   📝 Loaded 2 dialogue lines
+2025-08-17 09:26:53,875 - INFO -   Generating Alex voice: 'This is a quick test to make sure our batch genera...'
+2025-08-17 09:26:55,483 - INFO -     Line 1: Alex - 16 words, 5.1s
+2025-08-17 09:26:55,483 - INFO -   Generating Sam voice: 'That's so cool! Each file should get a different b...'
+2025-08-17 09:26:56,909 - INFO -     Line 2: Sam - 12 words, 4.5s
+2025-08-17 09:26:56,909 - INFO -   🎵 Total duration: 9.9 seconds
+2025-08-17 09:26:56,759 - INFO -   💾 Creating video: /home/nikita/brain-bites/video_making/outputs/quick-test-video_short-test-to-verify-batch-processing-works-with-multiple-files.mp4
+2025-08-17 09:27:14,435 - INFO -   ✅ Video created: /home/nikita/brain-bites/video_making/outputs/quick-test-video_short-test-to-verify-batch-processing-works-with-multiple-files.mp4
+2025-08-17 09:27:14,435 - INFO -   📤 Uploading quick-test-video_short-test-to-verify-batch-processing-works-with-multiple-files.mp4 to S3 bucket brain-bite-bucket...
+2025-08-17 09:27:14,917 - INFO -   ✅ Upload successful: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/quick-test-video_short-test-to-verify-batch-processing-works-with-multiple-files.mp4
+2025-08-17 09:27:14,917 - INFO -   🌐 Video available at: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/quick-test-video_short-test-to-verify-batch-processing-works-with-multiple-files.mp4
+2025-08-17 09:27:14,918 - INFO - 🧹 Temporary files cleaned up
+2025-08-17 09:27:14,918 - INFO - 📹 Processing java_oop_brainrot.json with background kinetic_sand_1.mp4
+2025-08-17 09:27:14,918 - INFO - 🎬 Creating video: Java OOP Four Principles Explained
+2025-08-17 09:27:14,918 - INFO -   📝 Loaded 6 dialogue lines
+2025-08-17 09:27:14,918 - INFO -   Generating Alex voice: 'Yo bestie, Java OOP is absolutely sending me! Ther...'
+2025-08-17 09:27:17,230 - INFO -     Line 1: Alex - 22 words, 10.3s
+2025-08-17 09:27:17,231 - INFO -   Generating Sam voice: 'Bruh, that sounds like Ohio nonsense! What's all t...'
+2025-08-17 09:27:19,220 - INFO -     Line 2: Sam - 21 words, 7.7s
+2025-08-17 09:27:19,220 - INFO -   Generating Alex voice: 'Nah fam, Encapsulation is like keeping your variab...'
+2025-08-17 09:27:21,612 - INFO -     Line 3: Alex - 29 words, 11.1s
+2025-08-17 09:27:21,612 - INFO -   Generating Sam voice: 'That's actually lowkey genius! So it's like having...'
+2025-08-17 09:27:23,645 - INFO -     Line 4: Sam - 22 words, 7.9s
+2025-08-17 09:27:23,645 - INFO -   Generating Alex voice: 'Inheritance is when child classes yeet all the pro...'
+2025-08-17 09:27:26,095 - INFO -     Line 5: Alex - 28 words, 10.8s
+2025-08-17 09:27:26,095 - INFO -   Generating Sam voice: 'This is absolutely bussin! So classes can inherit ...'
+2025-08-17 09:27:25,890 - INFO -     Line 6: Sam - 26 words, 10.1s
+2025-08-17 09:27:25,890 - INFO -   🎵 Total duration: 59.4 seconds
+2025-08-17 09:27:36,238 - INFO -   💾 Creating video: /home/nikita/brain-bites/video_making/outputs/java-oop-four-principles-explained_brainrot-explanation-of-java-object-oriented-programmings-four-ma.mp4
+2025-08-17 09:28:32,454 - INFO -   ✅ Video created: /home/nikita/brain-bites/video_making/outputs/java-oop-four-principles-explained_brainrot-explanation-of-java-object-oriented-programmings-four-ma.mp4
+2025-08-17 09:28:32,454 - INFO -   📤 Uploading java-oop-four-principles-explained_brainrot-explanation-of-java-object-oriented-programmings-four-ma.mp4 to S3 bucket brain-bite-bucket...
+2025-08-17 09:28:33,694 - INFO -   ✅ Upload successful: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/java-oop-four-principles-explained_brainrot-explanation-of-java-object-oriented-programmings-four-ma.mp4
+2025-08-17 09:28:33,694 - INFO -   🌐 Video available at: https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/java-oop-four-principles-explained_brainrot-explanation-of-java-object-oriented-programmings-four-ma.mp4
+2025-08-17 09:28:33,694 - INFO - 🧹 Temporary files cleaned up
+2025-08-17 09:28:33,694 - INFO - ✅ Batch processing complete! Created 4 videos
+2025-08-17 09:28:33,694 - INFO -    📽️  https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/integration-sigma-energy_skibidi-explanation-of-how-integrals-find-area-under-curves-with-infinite-r.mp4
+2025-08-17 09:28:33,695 - INFO -    📽️  https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/how-your-brain-processes-visual-information_mind-blowing-facts-about-how-the-human-brain-processes-v.mp4
+2025-08-17 09:28:33,695 - INFO -    📽️  https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/quick-test-video_short-test-to-verify-batch-processing-works-with-multiple-files.mp4
+2025-08-17 09:28:33,695 - INFO -    📽️  https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/java-oop-four-principles-explained_brainrot-explanation-of-java-object-oriented-programmings-four-ma.mp4
