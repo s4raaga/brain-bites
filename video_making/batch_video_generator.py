@@ -64,7 +64,7 @@ class BatchVideoGenerator:
         
         # Predefined character options
         self.PREDEFINED_CHARACTERS = {
-            'character1': {
+            'Speaker A': {
                 'name': 'Alex',
                 'voice_id': 'pNInz6obpgDQGcFmaJgB',  # Adam - Clear male voice
                 'voice_description': 'Adam - Clear male voice',
@@ -72,7 +72,7 @@ class BatchVideoGenerator:
                 'caption_stroke_color': 'blue',
                 'image_file': 'characters/alex_head.PNG'
             },
-            'character2': {
+            'Speaker B': {
                 'name': 'Sam', 
                 'voice_id': 'EXAVITQu4vr4xnSDxMaL',  # Bella - Female voice
                 'voice_description': 'Bella - Female voice',
@@ -83,10 +83,11 @@ class BatchVideoGenerator:
         }
         
         # Animation settings
-        self.CHARACTER_IMAGE_SIZE = [300, 300]
+    # Doubled character image size (was 300x300)
+    self.CHARACTER_IMAGE_SIZE = [600, 600]
         self.CHARACTER_POSITIONS = {
-            'character1': [50, 1250],     # Left side with margin
-            'character2': [730, 1250]     # Right side with margin
+            'Speaker A': [50, 1250],     # Left side with margin
+            'Speaker B': [730, 1250]     # Right side with margin
         }
         self.JIGGLE_INTENSITY = 5
         self.JIGGLE_FREQUENCY = 8
@@ -304,7 +305,7 @@ class BatchVideoGenerator:
             current_time_offset += audio_duration + 0.3  # Add small pause between lines
         
         # Combine all audio clips with pauses
-        if len(audio_clips) > 1:
+    if len(audio_clips) > 1:
             silence_duration = 0.3
             sample_rate = 44100
             silence_array = np.zeros((int(silence_duration * sample_rate), 2))
@@ -324,6 +325,11 @@ class BatchVideoGenerator:
             self.logger.error("❌ No audio generated!")
             return None
         
+        # Peak normalize combined audio (simple)
+        try:
+            final_audio = self._normalize_audio(final_audio)
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning(f"Audio normalization failed: {e}")
         total_duration = final_audio.duration
         self.logger.info(f"  🎵 Total duration: {total_duration:.1f} seconds")
         
@@ -495,6 +501,26 @@ class BatchVideoGenerator:
                 return s3_url
         
         return str(output_path)
+
+    def _normalize_audio(self, audio_clip, peak_target: float = 0.95, sample_rate: int = 44100):  # noqa: ANN001
+        """Simple peak normalization to target peak amplitude.
+
+        This isn't loudness (LUFS) normalization, but adequate to even out
+        per-line variation caused by TTS. Caps amplification at 3x.
+        """
+        try:
+            arr = audio_clip.to_soundarray(fps=sample_rate)
+        except Exception:
+            return audio_clip
+        if arr.size == 0:
+            return audio_clip
+        peak = float(np.max(np.abs(arr)))
+        if peak == 0:
+            return audio_clip
+        scale = peak_target / peak
+        if scale > 3:
+            scale = 3
+        return audio_clip.volumex(scale)
     
     def cleanup_temp_files(self):
         """Clean up temporary files"""
