@@ -8,7 +8,8 @@ import {
   Dimensions, 
   StyleSheet,
   Text,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Image
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -102,6 +103,7 @@ const VideoPlayer = ({ item, isActive, index }: VideoPlayerProps) => {
       player.muted = false;
     }
   }, [hasInteracted, player]);
+
 
   // Handle touch/click to enable audio and continue playing
   const handleVideoPress = useCallback(() => {
@@ -352,6 +354,18 @@ export default function VideoFeed() {
           />
         }
       />
+      {/* Top gradient shadow for logo readability */}
+      <LinearGradient
+        colors={['rgba(0,0,0,0.4)', 'transparent']}
+        style={styles.topGradient}
+        pointerEvents="none"
+      />
+      {/* Floating Brain Bites Logo */}
+      <Image
+        source={require('@/assets/images/branding/BrainBites_text.png')}
+        style={styles.floatingLogo}
+        resizeMode="contain"
+      />
     </View>
   );
 }
@@ -477,5 +491,22 @@ const styles = StyleSheet.create({
   },
   animationEmoji: {
     fontSize: 120,
+  },
+  topGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 80, // Subtle gradient height
+    zIndex: 4, // Below logo but above video
+  },
+  floatingLogo: {
+    position: 'absolute',
+    top: Constants.statusBarHeight + 10, // Safe area + padding
+    left: (SCREEN_WIDTH - 150) / 2, // Center horizontally with new width
+    height: 40,
+    width: 150,
+    zIndex: 5,
+    opacity: 0.85,
   },
 });
