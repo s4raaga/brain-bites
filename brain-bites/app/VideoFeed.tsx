@@ -14,7 +14,23 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
 import Constants from 'expo-constants';
 
-const API_BASE = 'https://sweet-hats-refuse.loca.lt';
+const API_BASE = 'https://brain-bites-api.loca.lt';
+
+// Fallback: Direct S3 URLs (uncomment if tunnel issues)
+const DIRECT_VIDEOS = [
+  {
+    key: "big-o-notation",
+    url: "https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/big-o-notation_comp3506-data-structures-and-algorithms.mp4"
+  },
+  {
+    key: "hash-tables", 
+    url: "https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/hash-tables_comp3506-data-structures-and-algorithms.mp4"
+  },
+  {
+    key: "linked-lists",
+    url: "https://brain-bite-bucket.s3.ap-southeast-2.amazonaws.com/videos/linked-lists_comp3506-data-structures-and-algorithms.mp4"
+  }
+];
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type VideoItem = { key: string; url: string };
